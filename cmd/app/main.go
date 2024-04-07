@@ -2,26 +2,27 @@ package main
 
 import (
 	"banner-service/internal/config"
+	authRepo "banner-service/internal/repository/auth"
+	bannerRepo "banner-service/internal/repository/banner"
 	"context"
 	"fmt"
-	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"log"
 )
 
 func main() {
 	ctx := context.Background()
 	cfg := config.NewConfig()
-	conn, err := pgx.Connect(ctx, cfg.PgURL)
+	pool, err := pgxpool.New(ctx, cfg.PgURL)
 	if err != nil {
 		log.Fatalf("Unable to connect to database: %v\n", err)
 	}
-	if err := conn.Ping(ctx); err != nil {
+	defer pool.Close()
+
+	if err := pool.Ping(ctx); err != nil {
 		fmt.Print(err)
 	}
-	defer func() {
-		if err := conn.Close(ctx); err != nil {
-			log.Fatal(err)
-		}
-	}()
+	authRepo := authRepo.NewAuthRepository(conn)
+	bannerRepo := bannerRepo.NewBannerRepository(conn)
 
 }
