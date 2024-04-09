@@ -54,7 +54,7 @@ func (s *Service) SignIn(ctx context.Context, signInInput *models.User) (string,
 
 	err = bcrypt.CompareHashAndPassword([]byte(hashPassword), []byte(signInInput.Password))
 	if err != nil {
-		return "", fmt.Errorf("invalid password: user=%v", signInInput)
+		return "", fmt.Errorf("invalid login or password: user=%v", signInInput)
 	}
 
 	role, err := s.AuthRepo.GetRole(ctx, signInInput.Username)

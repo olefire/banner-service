@@ -2,6 +2,11 @@ package models
 
 type UserRole string
 
+const (
+	Client UserRole = "client"
+	Admin  UserRole = "admin"
+)
+
 type User struct {
 	Username string   `db:"username" json:"username" validate:"required"`
 	Password string   `db:"password" json:"password" validate:"required"`

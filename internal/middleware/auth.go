@@ -7,27 +7,15 @@ import (
 	"strings"
 )
 
-func AuthorizationMiddleware(next http.Handler, publicKey string) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		authHeader := r.Header.Get("Authorization")
-		authFields := strings.Fields(authHeader)
-
-		if len(authFields) == 0 || authFields[0] != "Bearer" {
-			w.WriteHeader(http.StatusUnauthorized)
-			return
-		}
-
-		_, err := utils.ValidateToken(authFields[1], publicKey)
-		if err != nil {
-			w.WriteHeader(http.StatusUnauthorized)
-			return
-		}
-
-		next.ServeHTTP(w, r)
-	})
+type AuthMiddleware struct {
+	publicKey string
 }
 
-func AdminMiddleware(next http.Handler, publicKey string) http.Handler {
+func NewAuthMiddleware(publicKey string) *AuthMiddleware {
+	return &AuthMiddleware{publicKey: publicKey}
+}
+
+func (am *AuthMiddleware) Middleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		authHeader := r.Header.Get("Authorization")
 		authFields := strings.Fields(authHeader)
@@ -37,13 +25,13 @@ func AdminMiddleware(next http.Handler, publicKey string) http.Handler {
 			return
 		}
 
-		isAdmin, err := utils.ValidateToken(authFields[1], publicKey)
+		role, err := utils.ValidateToken(authFields[1], am.publicKey)
 		if err != nil {
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
 
-		ctx := context.WithValue(r.Context(), "isAdmin", isAdmin.(bool))
+		ctx := context.WithValue(r.Context(), "role", role)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }

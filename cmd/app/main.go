@@ -40,7 +40,8 @@ func main() {
 
 	ctr := controllerhttp.NewController(
 		controllerhttp.AuthService{AuthManagement: authService},
-		controllerhttp.BannerService{BannerManagement: bannerService})
+		controllerhttp.BannerService{BannerManagement: bannerService},
+		cfg.PublicKey)
 
 	router := ctr.NewRouter()
 

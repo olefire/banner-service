@@ -6,7 +6,8 @@ import (
 )
 
 type Repository interface {
-	GetBanner(ctx context.Context, tagId uint64, featureId uint64) (*models.Banner, error)
+	GetBannerIsActive(ctx context.Context, tagId uint64, featureId uint64) error
+	GetBanner(ctx context.Context, tagId uint64, featureId uint64) (string, error)
 	GetFilteredBanners(ctx context.Context, filter *models.FilterBanner) ([]models.Banner, error)
 	CreateBanner(ctx context.Context, banner *models.Banner) (uint64, error)
 	PartialUpdateBanner(ctx context.Context, bannerPartial *models.Banner) error
@@ -27,8 +28,20 @@ func NewService(d Deps) *Service {
 	}
 }
 
-func (s *Service) GetBanner(ctx context.Context, tagId uint64, featureId uint64) (*models.Banner, error) {
-	panic("implement me")
+func (s *Service) GetBanner(ctx context.Context, tagId uint64, featureId uint64, role models.UserRole) (string, error) {
+	if role == models.Client {
+		err := s.BannerRepo.GetBannerIsActive(ctx, tagId, featureId)
+		if err != nil {
+			return "", err
+		}
+	}
+
+	content, err := s.BannerRepo.GetBanner(ctx, tagId, featureId)
+	if err != nil {
+		return "", err
+	}
+
+	return content, nil
 }
 
 func (s *Service) GetFilteredBanners(ctx context.Context, filter *models.FilterBanner) ([]models.Banner, error) {
