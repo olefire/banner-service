@@ -4,7 +4,7 @@
 CREATE TABLE users
 (
     username      TEXT PRIMARY KEY,
-    hash_password TEXT NOT NULL UNIQUE,
+    hash_password TEXT NOT NULL,
     role          TEXT NOT NULL
 );
 
