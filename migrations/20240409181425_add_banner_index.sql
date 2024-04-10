@@ -6,6 +6,7 @@ CREATE UNIQUE INDEX CONCURRENTLY tag_feature_unique_idx ON banner_feature_tag (t
 
 -- +goose StatementEnd
 
+-- +goose NO TRANSACTION
 -- +goose Down
 -- +goose StatementBegin
 DROP INDEX CONCURRENTLY tag_feature_unique_idx;

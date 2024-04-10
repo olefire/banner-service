@@ -3,7 +3,7 @@
 
 CREATE TABLE banner_feature_tag
 (
-    banner_id  BIGINT PRIMARY KEY,
+    banner_id  BIGINT  NOT NULL,
     tag_id     INTEGER NOT NULL,
     feature_id INTEGER NOT NULL
 );

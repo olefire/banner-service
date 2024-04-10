@@ -3,7 +3,7 @@
 CREATE TABLE banner_version
 (
     banner_id  BIGINT    NOT NULL,
-    version    SERIAL    NOT NULL,
+    version    INTEGER    NOT NULL,
     content    JSONB,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (banner_id) REFERENCES banner (banner_id),

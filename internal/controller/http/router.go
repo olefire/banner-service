@@ -1,17 +1,18 @@
 package http
 
 import (
-	"banner-service/internal/middleware"
 	"github.com/go-chi/chi/v5"
 	"net/http"
 )
 
 func (ctr *Controller) NewRouter() http.Handler {
 	r := chi.NewRouter()
-	authMiddleware := middleware.NewAuthMiddleware(ctr.publicKey)
+	//authMiddleware := middleware.NewAuthMiddleware(ctr.publicKey)
 	r.Post("/sign-up", ctr.SignUp)
 	r.Post("/sign-in", ctr.SignIn)
-	r.With(authMiddleware.Middleware).Post("/user_banner", ctr.GetBanner)
+	r.Get("/user_banner", ctr.GetBanner)
+	r.Post("/banner", ctr.CreateBanner)
+	r.Patch("/banner", ctr.PartialUpdateBanner)
 	//TODO: add routes for banner
 
 	return r

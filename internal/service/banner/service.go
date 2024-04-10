@@ -10,7 +10,7 @@ type Repository interface {
 	GetBanner(ctx context.Context, tagId uint64, featureId uint64) (string, error)
 	GetFilteredBanners(ctx context.Context, filter *models.FilterBanner) ([]models.Banner, error)
 	CreateBanner(ctx context.Context, banner *models.Banner) (uint64, error)
-	PartialUpdateBanner(ctx context.Context, bannerPartial *models.Banner) error
+	PartialUpdateBanner(ctx context.Context, bannerPartial *models.PatchBanner) error
 	DeleteBanner(ctx context.Context, id uint64) error
 }
 
@@ -49,11 +49,18 @@ func (s *Service) GetFilteredBanners(ctx context.Context, filter *models.FilterB
 }
 
 func (s *Service) CreateBanner(ctx context.Context, banner *models.Banner) (uint64, error) {
-	panic("implement me")
+	bannerId, err := s.BannerRepo.CreateBanner(ctx, banner)
+	if err != nil {
+		return 0, err
+	}
+	return bannerId, nil
 }
 
-func (s *Service) PartialUpdateBanner(ctx context.Context, bannerPartial *models.Banner) error {
-	panic("implement me")
+func (s *Service) PartialUpdateBanner(ctx context.Context, bannerPartial *models.PatchBanner) error {
+	if err := s.BannerRepo.PartialUpdateBanner(ctx, bannerPartial); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (s *Service) DeleteBanner(ctx context.Context, bannerId uint64) error {
