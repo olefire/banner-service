@@ -1,10 +1,10 @@
 package main
 
 import (
+	AuthService "banner-service/internal/auth"
 	"banner-service/internal/config"
 	controllerhttp "banner-service/internal/controller/http"
 	"banner-service/internal/repository"
-	AuthService "banner-service/internal/service/auth"
 	BannerService "banner-service/internal/service/banner"
 	"banner-service/pkg/middleware"
 	"context"
@@ -47,7 +47,7 @@ func main() {
 
 	c := cors.New(cors.Options{
 		AllowedOrigins: []string{"*"},
-		AllowedMethods: []string{"GET", "POST", "PUT", "DELETE"},
+		AllowedMethods: []string{"GET", "POST", "PUT", "DELETE", "PATCH"},
 	})
 
 	err = http.ListenAndServe(cfg.Port, middleware.PanicRecovery(middleware.LogRequest(c.Handler(router))))

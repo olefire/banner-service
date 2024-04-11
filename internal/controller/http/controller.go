@@ -3,21 +3,20 @@ package http
 import (
 	"banner-service/internal/models"
 	"banner-service/internal/repository"
-	authservice "banner-service/internal/service/auth"
-	bannerservice "banner-service/internal/service/banner"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/go-chi/chi/v5"
 	"net/http"
 	"strconv"
 )
 
 type AuthService struct {
-	authservice.AuthManagement
+	AuthManagement
 }
 
 type BannerService struct {
-	bannerservice.BannerManagement
+	BannerManagement
 }
 
 type Controller struct {
@@ -142,14 +141,35 @@ func (ctr *Controller) CreateBanner(w http.ResponseWriter, r *http.Request) {
 }
 
 func (ctr *Controller) PartialUpdateBanner(w http.ResponseWriter, r *http.Request) {
+	bannerId, err := strconv.ParseUint(chi.URLParam(r, "banner_id"), 10, 64)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
 	var banner models.PatchBanner
-	err := json.NewDecoder(r.Body).Decode(&banner)
+	err = json.NewDecoder(r.Body).Decode(&banner)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	err = ctr.BannerService.PartialUpdateBanner(r.Context(), &banner)
+	err = ctr.BannerService.PartialUpdateBanner(r.Context(), bannerId, &banner)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+}
+
+func (ctr *Controller) DeleteBanner(w http.ResponseWriter, r *http.Request) {
+	bannerId, err := strconv.ParseUint(chi.URLParam(r, "banner_id"), 10, 64)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	err = ctr.BannerService.DeleteBanner(r.Context(), bannerId)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

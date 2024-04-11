@@ -1,6 +1,7 @@
 package banner
 
 import (
+	"banner-service/internal/controller/http"
 	"banner-service/internal/models"
 	"context"
 )
@@ -10,7 +11,7 @@ type Repository interface {
 	GetBanner(ctx context.Context, tagId uint64, featureId uint64) (string, error)
 	GetFilteredBanners(ctx context.Context, filter *models.FilterBanner) ([]models.Banner, error)
 	CreateBanner(ctx context.Context, banner *models.Banner) (uint64, error)
-	PartialUpdateBanner(ctx context.Context, bannerPartial *models.PatchBanner) error
+	PartialUpdateBanner(ctx context.Context, bannerId uint64, bannerPartial *models.PatchBanner) error
 	DeleteBanner(ctx context.Context, id uint64) error
 }
 
@@ -27,6 +28,8 @@ func NewService(d Deps) *Service {
 		Deps: d,
 	}
 }
+
+var _ http.BannerManagement = (*Service)(nil)
 
 func (s *Service) GetBanner(ctx context.Context, tagId uint64, featureId uint64, role models.UserRole) (string, error) {
 	if role == models.Client {
@@ -56,13 +59,16 @@ func (s *Service) CreateBanner(ctx context.Context, banner *models.Banner) (uint
 	return bannerId, nil
 }
 
-func (s *Service) PartialUpdateBanner(ctx context.Context, bannerPartial *models.PatchBanner) error {
-	if err := s.BannerRepo.PartialUpdateBanner(ctx, bannerPartial); err != nil {
+func (s *Service) PartialUpdateBanner(ctx context.Context, bannerId uint64, bannerPartial *models.PatchBanner) error {
+	if err := s.BannerRepo.PartialUpdateBanner(ctx, bannerId, bannerPartial); err != nil {
 		return err
 	}
 	return nil
 }
 
 func (s *Service) DeleteBanner(ctx context.Context, bannerId uint64) error {
-	panic("implement me")
+	if err := s.BannerRepo.DeleteBanner(ctx, bannerId); err != nil {
+		return err
+	}
+	return nil
 }

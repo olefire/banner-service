@@ -1,7 +1,6 @@
 package models
 
 import (
-	"database/sql"
 	"encoding/json"
 	"time"
 )
@@ -18,10 +17,10 @@ type Banner struct {
 }
 
 type PatchBanner struct {
-	FeatureId uint64       `db:"feature_id" json:"feature_id"`
-	TagIds    []uint64     `db:"tag_ids" json:"tag_ids"`
-	Content   string       `db:"content" json:"content"`
-	IsActive  sql.NullBool `db:"is_active" json:"is_active"`
+	FeatureId *uint64         `db:"feature_id" json:"feature_id"`
+	TagIds    []uint64        `db:"tag_ids" json:"tag_ids"`
+	Content   json.RawMessage `db:"content" json:"content"`
+	IsActive  *bool           `db:"is_active" json:"is_active"`
 }
 
 type FilterBanner struct {

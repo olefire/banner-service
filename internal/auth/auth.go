@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"banner-service/internal/controller/http"
 	"banner-service/internal/models"
 	utils "banner-service/pkg/utils/auth"
 	"context"
@@ -30,6 +31,8 @@ func NewService(d Deps) *Service {
 		Deps: d,
 	}
 }
+
+var _ http.AuthManagement = (*Service)(nil)
 
 func (s *Service) SignUp(ctx context.Context, user *models.User) error {
 	hashPassword, err := utils.HashPassword(user.Password)

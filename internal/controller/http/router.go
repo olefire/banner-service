@@ -12,7 +12,8 @@ func (ctr *Controller) NewRouter() http.Handler {
 	r.Post("/sign-in", ctr.SignIn)
 	r.Get("/user_banner", ctr.GetBanner)
 	r.Post("/banner", ctr.CreateBanner)
-	r.Patch("/banner", ctr.PartialUpdateBanner)
+	r.Patch("/banner/{banner_id}", ctr.PartialUpdateBanner)
+	r.Delete("/banner/{banner_id}", ctr.DeleteBanner)
 	//TODO: add routes for banner
 
 	return r
