@@ -7,6 +7,12 @@
 *.dll
 *.so
 *.dylib
+.idea
+
+go.sum -diff
+**/go.sum -diff
+*_string.go -diff
+*_mock_test.go -diff
 
 # Test binary, built with `go test -c`
 *.test

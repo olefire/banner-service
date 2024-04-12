@@ -25,4 +25,3 @@ jobs:
           version: v1.56.0
           args: --timeout=5m
           only-new-issues: true
-          working-directory: ../../cmd/app
