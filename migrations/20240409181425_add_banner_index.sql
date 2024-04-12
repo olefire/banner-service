@@ -2,12 +2,12 @@
 -- +goose Up
 -- +goose StatementBegin
 
-CREATE UNIQUE INDEX CONCURRENTLY tag_feature_unique_idx ON banner_feature_tag (tag_id, feature_id);
+create unique index concurrently tag_feature_unique_idx on banner_feature_tag using hash (tag_id, feature_id);
 
 -- +goose StatementEnd
 
 -- +goose NO TRANSACTION
 -- +goose Down
 -- +goose StatementBegin
-DROP INDEX CONCURRENTLY tag_feature_unique_idx;
+drop index concurrently tag_feature_unique_idx;
 -- +goose StatementEnd

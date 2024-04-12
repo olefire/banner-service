@@ -1,17 +1,17 @@
 -- +goose Up
 -- +goose StatementBegin
-CREATE TABLE banner_version
+create table banner_version
 (
-    banner_id  BIGINT    NOT NULL DEFAULT 1,
-    version    INTEGER   NOT NULL DEFAULT 1,
-    content    JSONB              DEFAULT '{}',
-    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    PRIMARY KEY (banner_id, version)
+    banner_id  bigint    not null default 1,
+    version    integer   not null default 1,
+    content    jsonb              default '{}',
+    updated_at timestamp not null default current_timestamp,
+    primary key (banner_id, version)
 );
 
 -- +goose StatementEnd
 
 -- +goose Down
 -- +goose StatementBegin
-DROP TABLE banner_version;
+drop table banner_version;
 -- +goose StatementEnd

@@ -1,16 +1,16 @@
 -- +goose Up
 -- +goose StatementBegin
 
-CREATE TABLE banner_feature_tag
+create table banner_feature_tag
 (
-    banner_id  BIGINT  NOT NULL,
-    tag_id     INTEGER NOT NULL,
-    feature_id INTEGER NOT NULL
+    banner_id  bigint  not null,
+    tag_id     integer not null,
+    feature_id integer not null
 );
 
 -- +goose StatementEnd
 
 -- +goose Down
 -- +goose StatementBegin
-DROP TABLE banner_feature_tag;
+drop table banner_feature_tag;
 -- +goose StatementEnd

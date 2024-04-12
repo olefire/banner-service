@@ -1,16 +1,16 @@
 -- +goose Up
 -- +goose StatementBegin
 
-CREATE TABLE users
+create table users
 (
-    username      TEXT PRIMARY KEY,
-    hash_password TEXT NOT NULL,
-    role          TEXT NOT NULL
+    username      text primary key,
+    hash_password text not null,
+    role          text not null
 );
 
 -- +goose StatementEnd
 
 -- +goose Down
 -- +goose StatementBegin
-DROP TABLE users;
+drop table users;
 -- +goose StatementEnd

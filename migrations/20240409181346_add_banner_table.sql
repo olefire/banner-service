@@ -1,20 +1,20 @@
 -- +goose Up
 -- +goose StatementBegin
 
-CREATE TABLE banner
+create table banner
 (
-    banner_id       BIGSERIAL PRIMARY KEY,
-    active_version  INTEGER   NOT NULL DEFAULT 1,
-    is_active       BOOLEAN   NOT NULL DEFAULT TRUE,
-    must_be_deleted BOOLEAN   NOT NULL DEFAULT FALSE,
-    created_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+    banner_id       bigserial primary key,
+    active_version  integer   not null default 1,
+    is_active       boolean   not null default true,
+    must_be_deleted boolean   not null default false,
+    created_at      timestamp not null default current_timestamp
 );
 
 -- +goose StatementEnd
 
 -- +goose Down
 -- +goose StatementBegin
-DROP TABLE banner;
+drop table banner;
 
 -- +goose StatementEnd
 
