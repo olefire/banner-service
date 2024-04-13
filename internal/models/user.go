@@ -17,3 +17,9 @@ type Credentials struct {
 	HashPassword string   `db:"hash_password" json:"hash_password" validate:"required"`
 	Role         UserRole `db:"role" json:"role"`
 }
+
+type UserPermission struct {
+	Role         UserRole `db:"role" json:"role"`
+	HTTPMethod   []string `db:"http_methods" json:"http_methods"`
+	EndpointPath string   `db:"endpoint_path" json:"endpoint_path"`
+}

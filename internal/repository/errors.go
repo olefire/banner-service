@@ -8,5 +8,5 @@ var (
 	ErrUserExists         = errors.New("user already exists")
 	ErrInvalidCredentials = errors.New("invalid username or password")
 	ErrUnauthorized       = errors.New("unauthorized")
-	ErrAccessDenied       = errors.New("access denied")
+	ErrBannerInactive     = errors.New("banner is inactive")
 )

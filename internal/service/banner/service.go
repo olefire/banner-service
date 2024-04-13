@@ -9,6 +9,8 @@ import (
 type Repository interface {
 	GetBannerIsActive(ctx context.Context, tagId uint64, featureId uint64) error
 	GetBanner(ctx context.Context, tagId uint64, featureId uint64) (string, error)
+	GetListOfVersions(ctx context.Context, bannerId uint64) ([]models.Banner, error)
+	ChooseVersion(ctx context.Context, bannerId uint64, version uint64) error
 	GetFilteredBanners(ctx context.Context, filter *models.FilterBanner) ([]models.Banner, error)
 	CreateBanner(ctx context.Context, banner *models.Banner) (uint64, error)
 	PartialUpdateBanner(ctx context.Context, bannerId uint64, bannerPartial *models.PatchBanner) error
@@ -47,8 +49,27 @@ func (s *Service) GetBanner(ctx context.Context, tagId uint64, featureId uint64,
 	return content, nil
 }
 
+func (s *Service) GetListOfVersions(ctx context.Context, bannerId uint64) ([]models.Banner, error) {
+	if banners, err := s.BannerRepo.GetListOfVersions(ctx, bannerId); err != nil {
+		return nil, err
+	} else {
+		return banners, nil
+	}
+}
+
+func (s *Service) ChooseVersion(ctx context.Context, bannerId uint64, version uint64) error {
+	if err := s.BannerRepo.ChooseVersion(ctx, bannerId, version); err != nil {
+		return err
+	}
+	return nil
+}
+
 func (s *Service) GetFilteredBanners(ctx context.Context, filter *models.FilterBanner) ([]models.Banner, error) {
-	panic("implement me")
+	if banners, err := s.BannerRepo.GetFilteredBanners(ctx, filter); err != nil {
+		return nil, err
+	} else {
+		return banners, nil
+	}
 }
 
 func (s *Service) CreateBanner(ctx context.Context, banner *models.Banner) (uint64, error) {

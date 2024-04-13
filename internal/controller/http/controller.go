@@ -11,7 +11,7 @@ import (
 	"strconv"
 )
 
-type AuthService struct {
+type AuthProvider struct {
 	AuthManagement
 }
 
@@ -20,14 +20,14 @@ type BannerService struct {
 }
 
 type Controller struct {
-	AuthService
+	AuthProvider
 	BannerService
 	publicKey string
 }
 
-func NewController(as AuthService, bs BannerService, pk string) *Controller {
+func NewController(as AuthProvider, bs BannerService, pk string) *Controller {
 	return &Controller{
-		AuthService:   as,
+		AuthProvider:  as,
 		BannerService: bs,
 		publicKey:     pk,
 	}
@@ -41,7 +41,7 @@ func (ctr *Controller) SignUp(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = ctr.AuthService.SignUp(r.Context(), &user)
+	err = ctr.AuthProvider.SignUp(r.Context(), &user)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -63,7 +63,7 @@ func (ctr *Controller) SignIn(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	token, err := ctr.AuthService.SignIn(r.Context(), &signInInput)
+	token, err := ctr.AuthProvider.SignIn(r.Context(), &signInInput)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -98,7 +98,7 @@ func (ctr *Controller) GetBanner(w http.ResponseWriter, r *http.Request) {
 	//}
 	role := models.UserRole("admin")
 	content, err := ctr.BannerService.GetBanner(r.Context(), tagId, featureId, role)
-	if errors.Is(err, repository.ErrAccessDenied) {
+	if errors.Is(err, repository.ErrBannerInactive) {
 		http.Error(w, err.Error(), http.StatusForbidden)
 		return
 	} else if errors.Is(err, repository.ErrNotFound) {
@@ -110,6 +110,66 @@ func (ctr *Controller) GetBanner(w http.ResponseWriter, r *http.Request) {
 	}
 
 	_, err = w.Write([]byte(content))
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+}
+
+func (ctr *Controller) GetFilteredBanners(w http.ResponseWriter, r *http.Request) {
+	var filter models.FilterBanner
+
+	if featureIdStr := r.URL.Query().Get("feature_id"); featureIdStr != "" {
+		featureId, err := strconv.ParseUint(featureIdStr, 10, 64)
+		if err != nil {
+			http.Error(w, "Invalid feature_id", http.StatusBadRequest)
+			return
+		}
+		filter.FeatureId = &featureId
+	}
+
+	if tagIdStr := r.URL.Query().Get("tag_id"); tagIdStr != "" {
+		tagId, err := strconv.ParseUint(tagIdStr, 10, 64)
+		if err != nil {
+			http.Error(w, "Invalid tag_id", http.StatusBadRequest)
+			return
+		}
+		filter.TagId = &tagId
+	}
+
+	if limitStr := r.URL.Query().Get("limit"); limitStr != "" {
+		limit, err := strconv.ParseUint(limitStr, 10, 64)
+		if err != nil {
+			http.Error(w, "Invalid limit", http.StatusBadRequest)
+			return
+		}
+		filter.Limit = limit
+	}
+
+	if offsetStr := r.URL.Query().Get("offset"); offsetStr != "" {
+		offset, err := strconv.ParseUint(offsetStr, 10, 64)
+		if err != nil {
+			http.Error(w, "Invalid offset", http.StatusBadRequest)
+			return
+		}
+		filter.Offset = offset
+	}
+
+	banners, err := ctr.BannerService.GetFilteredBanners(r.Context(), &filter)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	bannersJSON, err := json.Marshal(banners)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	_, err = w.Write(bannersJSON)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -170,6 +230,55 @@ func (ctr *Controller) DeleteBanner(w http.ResponseWriter, r *http.Request) {
 	}
 
 	err = ctr.BannerService.DeleteBanner(r.Context(), bannerId)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+}
+
+func (ctr *Controller) GetListOfVersions(w http.ResponseWriter, r *http.Request) {
+	bannerId, err := strconv.ParseUint(chi.URLParam(r, "banner_id"), 10, 64)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	banners, err := ctr.BannerService.GetListOfVersions(r.Context(), bannerId)
+	if err != nil {
+		//ToDo: add error handling
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	bannersJSON, err := json.Marshal(banners)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	_, err = w.Write(bannersJSON)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+}
+
+func (ctr *Controller) ChooseBannerVersion(w http.ResponseWriter, r *http.Request) {
+	bannerId, err := strconv.ParseUint(chi.URLParam(r, "version"), 10, 64)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	version, err := strconv.ParseUint(chi.URLParam(r, "version"), 10, 64)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	err = ctr.BannerService.ChooseVersion(r.Context(), bannerId, version)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

@@ -1,7 +1,7 @@
 package main
 
 import (
-	AuthService "banner-service/internal/auth"
+	AuthProvider "banner-service/internal/auth"
 	"banner-service/internal/config"
 	controllerhttp "banner-service/internal/controller/http"
 	"banner-service/internal/repository"
@@ -30,7 +30,7 @@ func main() {
 	authRepo := repository.NewAuthRepository(pool)
 	bannerRepo := repository.NewBannerRepository(pool)
 
-	authService := AuthService.NewService(AuthService.Deps{
+	authService := AuthProvider.NewAuthProvider(AuthProvider.Deps{
 		AuthRepo:   authRepo,
 		PrivateKey: cfg.PrivateKey,
 		PublicKey:  cfg.PublicKey,
@@ -39,7 +39,7 @@ func main() {
 	bannerService := BannerService.NewService(BannerService.Deps{BannerRepo: bannerRepo})
 
 	ctr := controllerhttp.NewController(
-		controllerhttp.AuthService{AuthManagement: authService},
+		controllerhttp.AuthProvider{AuthManagement: authService},
 		controllerhttp.BannerService{BannerManagement: bannerService},
 		cfg.PublicKey)
 
