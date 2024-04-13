@@ -34,7 +34,7 @@ func NewController(as AuthProvider, bs BannerService, pk string) *Controller {
 	}
 }
 
-func (ctr *Controller) SignUp(w http.ResponseWriter, r *http.Request) {
+func (ctr *Controller) SignUpEndpoint(w http.ResponseWriter, r *http.Request) {
 	var user models.User
 	err := json.NewDecoder(r.Body).Decode(&user)
 	if err != nil {
@@ -56,7 +56,7 @@ func (ctr *Controller) SignUp(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusCreated)
 }
 
-func (ctr *Controller) SignIn(w http.ResponseWriter, r *http.Request) {
+func (ctr *Controller) SignInEndpoint(w http.ResponseWriter, r *http.Request) {
 	var signInInput models.User
 	err := json.NewDecoder(r.Body).Decode(&signInInput)
 	if err != nil {
@@ -80,7 +80,7 @@ func (ctr *Controller) SignIn(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-func (ctr *Controller) GetBanner(w http.ResponseWriter, r *http.Request) {
+func (ctr *Controller) GetBannerEndpoint(w http.ResponseWriter, r *http.Request) {
 	tagId, err := strconv.ParseUint(r.URL.Query().Get("tag_id"), 10, 64)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -92,9 +92,9 @@ func (ctr *Controller) GetBanner(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	role := contextUtils.GetPayload(r.Context()).(models.UserRole)
+	role := contextUtils.GetPayload(r.Context())
 
-	content, err := ctr.BannerService.GetBanner(r.Context(), tagId, featureId, role)
+	content, err := ctr.BannerService.GetBanner(r.Context(), tagId, featureId, models.UserRole(fmt.Sprint(role)))
 	if errors.Is(err, repository.ErrBannerInactive) {
 		http.Error(w, err.Error(), http.StatusForbidden)
 		return
@@ -115,7 +115,7 @@ func (ctr *Controller) GetBanner(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-func (ctr *Controller) GetFilteredBanners(w http.ResponseWriter, r *http.Request) {
+func (ctr *Controller) GetFilteredBannersEndpoint(w http.ResponseWriter, r *http.Request) {
 	var filter models.FilterBanner
 
 	if featureIdStr := r.URL.Query().Get("feature_id"); featureIdStr != "" {
@@ -175,7 +175,7 @@ func (ctr *Controller) GetFilteredBanners(w http.ResponseWriter, r *http.Request
 	w.WriteHeader(http.StatusOK)
 }
 
-func (ctr *Controller) CreateBanner(w http.ResponseWriter, r *http.Request) {
+func (ctr *Controller) CreateBannerEndpoint(w http.ResponseWriter, r *http.Request) {
 	var banner *models.Banner
 	err := json.NewDecoder(r.Body).Decode(&banner)
 	if err != nil {
@@ -197,7 +197,7 @@ func (ctr *Controller) CreateBanner(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusCreated)
 }
 
-func (ctr *Controller) PartialUpdateBanner(w http.ResponseWriter, r *http.Request) {
+func (ctr *Controller) PartialUpdateBannerEndpoint(w http.ResponseWriter, r *http.Request) {
 	bannerId, err := strconv.ParseUint(chi.URLParam(r, "banner_id"), 10, 64)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -219,7 +219,7 @@ func (ctr *Controller) PartialUpdateBanner(w http.ResponseWriter, r *http.Reques
 	w.WriteHeader(http.StatusOK)
 }
 
-func (ctr *Controller) DeleteBanner(w http.ResponseWriter, r *http.Request) {
+func (ctr *Controller) DeleteBannerEndpoint(w http.ResponseWriter, r *http.Request) {
 	bannerId, err := strconv.ParseUint(chi.URLParam(r, "banner_id"), 10, 64)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -235,7 +235,7 @@ func (ctr *Controller) DeleteBanner(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-func (ctr *Controller) GetListOfVersions(w http.ResponseWriter, r *http.Request) {
+func (ctr *Controller) GetListOfVersionsEndpoint(w http.ResponseWriter, r *http.Request) {
 	bannerId, err := strconv.ParseUint(chi.URLParam(r, "banner_id"), 10, 64)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -263,7 +263,7 @@ func (ctr *Controller) GetListOfVersions(w http.ResponseWriter, r *http.Request)
 	w.WriteHeader(http.StatusOK)
 }
 
-func (ctr *Controller) ChooseBannerVersion(w http.ResponseWriter, r *http.Request) {
+func (ctr *Controller) ChooseBannerVersionEndpoint(w http.ResponseWriter, r *http.Request) {
 	bannerId, err := strconv.ParseUint(chi.URLParam(r, "version"), 10, 64)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)

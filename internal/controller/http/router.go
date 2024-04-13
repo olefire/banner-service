@@ -9,16 +9,16 @@ import (
 func (ctr *Controller) NewRouter() http.Handler {
 	r := chi.NewRouter()
 	authMiddleware := middleware.NewAuthMiddleware(ctr.publicKey)
-	r.Post("/sign-up", ctr.SignUp)
-	r.Post("/sign-in", ctr.SignIn)
-	r.With(authMiddleware.Middleware).Get("/user_banner", ctr.GetBanner)
-	r.Route("/banner", func(r chi.Router) {
-		r.With(authMiddleware.Middleware).Get("/", ctr.GetFilteredBanners)
-		r.Get("/versions/{banner_id}", ctr.GetListOfVersions)
-		r.With(authMiddleware.Middleware).Post("/", ctr.CreateBanner)
-		r.Patch("/{banner_id}", ctr.PartialUpdateBanner)
-		r.Patch("/choose/{version}", ctr.ChooseBannerVersion)
-		r.Delete("/banner/{banner_id}", ctr.DeleteBanner)
+	r.Post("/sign-up", ctr.SignUpEndpoint)
+	r.Post("/sign-in", ctr.SignInEndpoint)
+	r.With(authMiddleware.Middleware).Get("/user_banner", ctr.GetBannerEndpoint)
+	r.With(authMiddleware.Middleware).Route("/banner", func(r chi.Router) {
+		r.Get("/", ctr.GetFilteredBannersEndpoint)
+		r.Get("/versions/{banner_id}", ctr.GetListOfVersionsEndpoint)
+		r.Post("/", ctr.CreateBannerEndpoint)
+		r.Patch("/{banner_id}", ctr.PartialUpdateBannerEndpoint)
+		r.Patch("/choose/{version}", ctr.ChooseBannerVersionEndpoint)
+		r.Delete("/banner/{banner_id}", ctr.DeleteBannerEndpoint)
 	})
 
 	//TODO: add routes for banner

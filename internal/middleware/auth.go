@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"path"
 	"strings"
 )
 
@@ -44,16 +45,15 @@ func (am *AuthMiddleware) Middleware(next http.Handler) http.Handler {
 			}
 		}
 
+		log.Print(r.Method, path.Dir(r.URL.Path))
 		if resources, ok := mapResources["resources"]; ok {
-			log.Print(resources.([]interface{}), r.Method, r.URL.Path)
-			if findResourceIndex(resources.([]interface{}), fmt.Sprintf("%s %s", r.Method, r.URL.Path)) != -1 {
-				log.Print(findResourceIndex(resources.([]interface{}), fmt.Sprintf("%s %s", r.Method, r.URL.Path)), r.URL.Path, r.Method)
+			if findResourceIndex(resources.([]interface{}), fmt.Sprintf("%s %s", r.Method, path.Dir(r.URL.Path))) != -1 {
 				ctx := contextUtils.SetPayload(r.Context(), mapResources["role"])
 				next.ServeHTTP(w, r.WithContext(ctx))
+				return
 			}
-		} else {
-			w.WriteHeader(http.StatusForbidden)
 		}
+		w.WriteHeader(http.StatusForbidden)
 	})
 }
 
