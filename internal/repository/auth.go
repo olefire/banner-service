@@ -20,9 +20,13 @@ func NewAuthRepository(pool *pgxpool.Pool) *AuthRepository {
 }
 
 func (au *AuthRepository) SignUp(ctx context.Context, user *models.User) error {
-	query := "INSERT INTO users(username, hash_password, role) VALUES($1, $2, $3)"
+	const (
+		insertUserQuery = `INSERT INTO users(username, hash_password, role) VALUES($1, $2, $3);`
+	)
 
-	if _, err := au.pool.Exec(ctx, query, user.Username, user.Password, user.Role); err != nil {
+	if _, err := au.pool.Exec(ctx, insertUserQuery, user.Username, user.Password, user.Role); errors.Is(err, pgx.ErrNoRows) {
+		return ErrUserExists
+	} else if err != nil {
 		return err
 	}
 
@@ -30,10 +34,12 @@ func (au *AuthRepository) SignUp(ctx context.Context, user *models.User) error {
 }
 
 func (au *AuthRepository) GetHashPassword(ctx context.Context, username string) (string, error) {
-	query := "SELECT hash_password FROM users WHERE username = $1"
+	const (
+		getHashPasswordQuery = `select hash_password from users where username = $1;`
+	)
 
 	var passwordHash string
-	if err := pgxscan.Get(ctx, au.pool, &passwordHash, query, username); errors.Is(err, pgx.ErrNoRows) {
+	if err := pgxscan.Get(ctx, au.pool, &passwordHash, getHashPasswordQuery, username); errors.Is(err, pgx.ErrNoRows) {
 		return "", ErrNotFound
 	} else if err != nil {
 		return "", err
@@ -42,15 +48,21 @@ func (au *AuthRepository) GetHashPassword(ctx context.Context, username string) 
 	return passwordHash, nil
 }
 
-func (au *AuthRepository) GetRole(ctx context.Context, username string) (string, error) {
-	query := "SELECT role FROM users WHERE username = $1"
+func (au *AuthRepository) GetUserResources(ctx context.Context, username string) (models.UserResources, error) {
+	const (
+		getResourcesQuery = `SELECT u.role, array_agg(re.resource) AS resources
+        FROM users u
+        JOIN role_endpoints re USING (role)
+        WHERE u.username = $1
+        GROUP BY u.role;`
+	)
 
-	var role string
-	if err := pgxscan.Get(ctx, au.pool, &role, query, username); errors.Is(err, pgx.ErrNoRows) {
-		return "", ErrNotFound
+	var resources models.UserResources
+	if err := pgxscan.Get(ctx, au.pool, &resources, getResourcesQuery, username); errors.Is(err, pgx.ErrNoRows) {
+		return models.UserResources{}, ErrNotFound
 	} else if err != nil {
-		return "", err
+		return models.UserResources{}, err
 	}
 
-	return role, nil
+	return resources, nil
 }

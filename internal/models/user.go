@@ -18,8 +18,7 @@ type Credentials struct {
 	Role         UserRole `db:"role" json:"role"`
 }
 
-type UserPermission struct {
-	Role         UserRole `db:"role" json:"role"`
-	HTTPMethod   []string `db:"http_methods" json:"http_methods"`
-	EndpointPath string   `db:"endpoint_path" json:"endpoint_path"`
+type UserResources struct {
+	Role      UserRole `db:"role" json:"role"`
+	Resources []string `db:"resources" json:"resources"`
 }

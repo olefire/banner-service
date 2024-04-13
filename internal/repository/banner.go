@@ -96,7 +96,7 @@ func (b *BannerRepository) GetListOfVersions(ctx context.Context, bannerId uint6
 	return banners, nil
 }
 
-func (b *BannerRepository) ChooseVersion(ctx context.Context, bannerId uint64, version uint64) error {
+func (b *BannerRepository) ChooseBannerVersion(ctx context.Context, bannerId uint64, version uint64) error {
 	const (
 		chooseVersionQuery = `update banner
 						 set active_version = $2
@@ -118,6 +118,7 @@ func (b *BannerRepository) GetFilteredBanners(ctx context.Context, filter *model
     WHERE ($1::int IS NULL OR bft.feature_id = $1)
     AND ($2::int IS NULL OR bft.tag_id = $2)
     GROUP BY b.banner_id, bft.feature_id, bv.content, b.is_active, bv.version, b.created_at, bv.updated_at
+    ORDER BY b.banner_id DESC 
     LIMIT $3 OFFSET $4`
 	)
 

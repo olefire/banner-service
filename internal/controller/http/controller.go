@@ -3,6 +3,7 @@ package http
 import (
 	"banner-service/internal/models"
 	"banner-service/internal/repository"
+	contextUtils "banner-service/pkg/utils/context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -91,12 +92,8 @@ func (ctr *Controller) GetBanner(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//role, ok := r.Context().Value("role").(models.UserRole)
-	//if !ok {
-	//	http.Error(w, "Role not found in context", http.StatusUnauthorized)
-	//	return
-	//}
-	role := models.UserRole("admin")
+	role := contextUtils.GetPayload(r.Context()).(models.UserRole)
+
 	content, err := ctr.BannerService.GetBanner(r.Context(), tagId, featureId, role)
 	if errors.Is(err, repository.ErrBannerInactive) {
 		http.Error(w, err.Error(), http.StatusForbidden)
@@ -278,7 +275,7 @@ func (ctr *Controller) ChooseBannerVersion(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	err = ctr.BannerService.ChooseVersion(r.Context(), bannerId, version)
+	err = ctr.BannerService.ChooseBannerVersion(r.Context(), bannerId, version)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -286,5 +283,3 @@ func (ctr *Controller) ChooseBannerVersion(w http.ResponseWriter, r *http.Reques
 
 	w.WriteHeader(http.StatusOK)
 }
-
-//ToDo: add methods for banner
