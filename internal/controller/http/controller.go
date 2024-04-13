@@ -1,9 +1,9 @@
 package http
 
 import (
+	"banner-service/internal/auth"
 	"banner-service/internal/models"
 	"banner-service/internal/repository"
-	contextUtils "banner-service/pkg/utils/context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -42,18 +42,18 @@ func (ctr *Controller) SignUpEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = ctr.AuthProvider.SignUp(r.Context(), &user)
+	token, err := ctr.AuthProvider.SignUp(r.Context(), &user)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	_, err = w.Write([]byte("User created"))
+	w.WriteHeader(http.StatusCreated)
+	_, err = w.Write([]byte(token))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	w.WriteHeader(http.StatusCreated)
 }
 
 func (ctr *Controller) SignInEndpoint(w http.ResponseWriter, r *http.Request) {
@@ -70,14 +70,12 @@ func (ctr *Controller) SignInEndpoint(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	w.WriteHeader(http.StatusOK)
 	_, err = w.Write([]byte(token))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-
-	w.Header().Set("Authorization", "Bearer "+token)
-	w.WriteHeader(http.StatusOK)
 }
 
 func (ctr *Controller) GetBannerEndpoint(w http.ResponseWriter, r *http.Request) {
@@ -92,9 +90,9 @@ func (ctr *Controller) GetBannerEndpoint(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	role := contextUtils.GetPayload(r.Context())
+	role := auth.GetRole(r.Context())
 
-	content, err := ctr.BannerService.GetBanner(r.Context(), tagId, featureId, models.UserRole(fmt.Sprint(role)))
+	content, err := ctr.BannerService.GetBanner(r.Context(), tagId, featureId, role)
 	if errors.Is(err, repository.ErrBannerInactive) {
 		http.Error(w, err.Error(), http.StatusForbidden)
 		return
@@ -106,53 +104,48 @@ func (ctr *Controller) GetBannerEndpoint(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
+	w.WriteHeader(http.StatusOK)
 	_, err = w.Write([]byte(content))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-
-	w.WriteHeader(http.StatusOK)
 }
 
 func (ctr *Controller) GetFilteredBannersEndpoint(w http.ResponseWriter, r *http.Request) {
 	var filter models.FilterBanner
 
-	if featureIdStr := r.URL.Query().Get("feature_id"); featureIdStr != "" {
-		featureId, err := strconv.ParseUint(featureIdStr, 10, 64)
-		if err != nil {
-			http.Error(w, "Invalid feature_id", http.StatusBadRequest)
-			return
-		}
-		filter.FeatureId = &featureId
+	featureIdStr := r.URL.Query().Get("feature_id")
+	featureId, err := strconv.ParseUint(featureIdStr, 10, 64)
+	if err != nil {
+		http.Error(w, "Invalid feature_id", http.StatusBadRequest)
+		return
 	}
+	filter.FeatureId = featureId
 
-	if tagIdStr := r.URL.Query().Get("tag_id"); tagIdStr != "" {
-		tagId, err := strconv.ParseUint(tagIdStr, 10, 64)
-		if err != nil {
-			http.Error(w, "Invalid tag_id", http.StatusBadRequest)
-			return
-		}
-		filter.TagId = &tagId
+	tagIdStr := r.URL.Query().Get("tag_id")
+	tagId, err := strconv.ParseUint(tagIdStr, 10, 64)
+	if err != nil {
+		http.Error(w, "Invalid tag_id", http.StatusBadRequest)
+		return
 	}
+	filter.TagId = tagId
 
-	if limitStr := r.URL.Query().Get("limit"); limitStr != "" {
-		limit, err := strconv.ParseUint(limitStr, 10, 64)
-		if err != nil {
-			http.Error(w, "Invalid limit", http.StatusBadRequest)
-			return
-		}
-		filter.Limit = limit
+	limitStr := r.URL.Query().Get("limit")
+	limit, err := strconv.ParseUint(limitStr, 10, 64)
+	if err != nil {
+		http.Error(w, "Invalid limit", http.StatusBadRequest)
+		return
 	}
+	filter.Limit = limit
 
-	if offsetStr := r.URL.Query().Get("offset"); offsetStr != "" {
-		offset, err := strconv.ParseUint(offsetStr, 10, 64)
-		if err != nil {
-			http.Error(w, "Invalid offset", http.StatusBadRequest)
-			return
-		}
-		filter.Offset = offset
+	offsetStr := r.URL.Query().Get("offset")
+	offset, err := strconv.ParseUint(offsetStr, 10, 64)
+	if err != nil {
+		http.Error(w, "Invalid offset", http.StatusBadRequest)
+		return
 	}
+	filter.Offset = offset
 
 	banners, err := ctr.BannerService.GetFilteredBanners(r.Context(), &filter)
 	if err != nil {
@@ -211,7 +204,10 @@ func (ctr *Controller) PartialUpdateBannerEndpoint(w http.ResponseWriter, r *htt
 	}
 
 	err = ctr.BannerService.PartialUpdateBanner(r.Context(), bannerId, &banner)
-	if err != nil {
+	if errors.Is(err, repository.ErrNotFound) {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	} else if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -226,8 +222,10 @@ func (ctr *Controller) DeleteBannerEndpoint(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	err = ctr.BannerService.DeleteBanner(r.Context(), bannerId)
-	if err != nil {
+	if err = ctr.BannerService.DeleteBanner(r.Context(), bannerId); errors.Is(err, repository.ErrNotFound) {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	} else if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -243,8 +241,10 @@ func (ctr *Controller) GetListOfVersionsEndpoint(w http.ResponseWriter, r *http.
 	}
 
 	banners, err := ctr.BannerService.GetListOfVersions(r.Context(), bannerId)
-	if err != nil {
-		//ToDo: add error handling
+	if errors.Is(err, repository.ErrNotFound) {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	} else if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -255,12 +255,12 @@ func (ctr *Controller) GetListOfVersionsEndpoint(w http.ResponseWriter, r *http.
 		return
 	}
 
+	w.WriteHeader(http.StatusOK)
 	_, err = w.Write(bannersJSON)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	w.WriteHeader(http.StatusOK)
 }
 
 func (ctr *Controller) ChooseBannerVersionEndpoint(w http.ResponseWriter, r *http.Request) {
@@ -276,7 +276,34 @@ func (ctr *Controller) ChooseBannerVersionEndpoint(w http.ResponseWriter, r *htt
 	}
 
 	err = ctr.BannerService.ChooseBannerVersion(r.Context(), bannerId, version)
+	if errors.Is(err, repository.ErrNotFound) {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	} else if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+}
+
+func (ctr *Controller) MarkBannerAsDeletedEndpoint(w http.ResponseWriter, r *http.Request) {
+	tagId, err := strconv.ParseUint(r.URL.Query().Get("tag_id"), 10, 64)
 	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	featureId, err := strconv.ParseUint(r.URL.Query().Get("feature_id"), 10, 64)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	err = ctr.BannerService.MarkBannerAsDeleted(r.Context(), tagId, featureId)
+	if errors.Is(err, repository.ErrNotFound) {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	} else if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}

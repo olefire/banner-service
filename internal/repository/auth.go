@@ -25,7 +25,7 @@ func (au *AuthRepository) SignUp(ctx context.Context, user *models.User) error {
 	)
 
 	if _, err := au.pool.Exec(ctx, insertUserQuery, user.Username, user.Password, user.Role); errors.Is(err, pgx.ErrNoRows) {
-		return ErrUserExists
+		return ErrAlreadyExists
 	} else if err != nil {
 		return err
 	}

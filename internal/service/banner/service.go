@@ -7,14 +7,14 @@ import (
 )
 
 type Repository interface {
-	GetBannerIsActive(ctx context.Context, tagId uint64, featureId uint64) error
-	GetBanner(ctx context.Context, tagId uint64, featureId uint64) (string, error)
+	GetBanner(ctx context.Context, tagId uint64, featureId uint64, isAdmin bool) (string, error)
 	GetListOfVersions(ctx context.Context, bannerId uint64) ([]models.Banner, error)
 	ChooseBannerVersion(ctx context.Context, bannerId uint64, version uint64) error
 	GetFilteredBanners(ctx context.Context, filter *models.FilterBanner) ([]models.Banner, error)
 	CreateBanner(ctx context.Context, banner *models.Banner) (uint64, error)
 	PartialUpdateBanner(ctx context.Context, bannerId uint64, bannerPartial *models.PatchBanner) error
 	DeleteBanner(ctx context.Context, id uint64) error
+	MarkBannersAsDeleted(ctx context.Context, tagId uint64, featureId uint64) error
 }
 
 type Deps struct {
@@ -34,14 +34,8 @@ func NewService(d Deps) *Service {
 var _ http.BannerManagement = (*Service)(nil)
 
 func (s *Service) GetBanner(ctx context.Context, tagId uint64, featureId uint64, role models.UserRole) (string, error) {
-	if role == models.Client {
-		err := s.BannerRepo.GetBannerIsActive(ctx, tagId, featureId)
-		if err != nil {
-			return "", err
-		}
-	}
 
-	content, err := s.BannerRepo.GetBanner(ctx, tagId, featureId)
+	content, err := s.BannerRepo.GetBanner(ctx, tagId, featureId, role == models.Admin)
 	if err != nil {
 		return "", err
 	}
@@ -89,6 +83,13 @@ func (s *Service) PartialUpdateBanner(ctx context.Context, bannerId uint64, bann
 
 func (s *Service) DeleteBanner(ctx context.Context, bannerId uint64) error {
 	if err := s.BannerRepo.DeleteBanner(ctx, bannerId); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *Service) MarkBannerAsDeleted(ctx context.Context, tagId uint64, featureId uint64) error {
+	if err := s.BannerRepo.MarkBannersAsDeleted(ctx, tagId, featureId); err != nil {
 		return err
 	}
 	return nil

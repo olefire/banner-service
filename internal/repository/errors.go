@@ -3,10 +3,7 @@ package repository
 import "errors"
 
 var (
-	ErrNotFound           = errors.New("record not found")
-	ErrInvalidInput       = errors.New("invalid input")
-	ErrUserExists         = errors.New("user already exists")
-	ErrInvalidCredentials = errors.New("invalid username or password")
-	ErrUnauthorized       = errors.New("unauthorized")
-	ErrBannerInactive     = errors.New("banner is inactive")
+	ErrNotFound       = errors.New("record not found")
+	ErrAlreadyExists  = errors.New("record already exists")
+	ErrBannerInactive = errors.New("banner is inactive")
 )

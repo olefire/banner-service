@@ -1,11 +1,10 @@
 package middleware
 
 import (
+	"banner-service/internal/auth"
 	"banner-service/internal/models"
-	authUtils "banner-service/pkg/utils/auth"
-	contextUtils "banner-service/pkg/utils/context"
 	"fmt"
-	"log"
+	"github.com/samber/lo"
 	"net/http"
 	"path"
 	"strings"
@@ -29,39 +28,27 @@ func (am *AuthMiddleware) Middleware(next http.Handler) http.Handler {
 			return
 		}
 
-		resources, err := authUtils.ValidateToken(authFields[1], am.publicKey)
+		resources, err := auth.ValidateToken(authFields[1], am.publicKey)
 		if err != nil {
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
 
-		mapResources := resources.(map[string]interface{})
-
-		if role, ok := mapResources["role"]; ok {
-			if role == models.Admin {
-				ctx := contextUtils.SetPayload(r.Context(), models.Admin)
-				next.ServeHTTP(w, r.WithContext(ctx))
-				return
-			}
+		ctx := auth.SetRole(r.Context(), resources.Role)
+		if resources.Role == models.Admin {
+			next.ServeHTTP(w, r.WithContext(ctx))
+			return
 		}
 
-		log.Print(r.Method, path.Dir(r.URL.Path))
-		if resources, ok := mapResources["resources"]; ok {
-			if findResourceIndex(resources.([]interface{}), fmt.Sprintf("%s %s", r.Method, path.Dir(r.URL.Path))) != -1 {
-				ctx := contextUtils.SetPayload(r.Context(), mapResources["role"])
-				next.ServeHTTP(w, r.WithContext(ctx))
-				return
-			}
+		if lo.Contains(resources.Resources, buildResource(r)) {
+			next.ServeHTTP(w, r.WithContext(ctx))
+			return
 		}
+
 		w.WriteHeader(http.StatusForbidden)
 	})
 }
 
-func findResourceIndex(resources []interface{}, resource string) int {
-	for i, res := range resources {
-		if res == resource {
-			return i
-		}
-	}
-	return -1
+func buildResource(r *http.Request) string {
+	return fmt.Sprintf("%s %s", r.Method, path.Dir(r.URL.Path))
 }

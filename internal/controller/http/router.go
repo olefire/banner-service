@@ -17,11 +17,10 @@ func (ctr *Controller) NewRouter() http.Handler {
 		r.Get("/versions/{banner_id}", ctr.GetListOfVersionsEndpoint)
 		r.Post("/", ctr.CreateBannerEndpoint)
 		r.Patch("/{banner_id}", ctr.PartialUpdateBannerEndpoint)
-		r.Patch("/choose/{version}", ctr.ChooseBannerVersionEndpoint)
-		r.Delete("/banner/{banner_id}", ctr.DeleteBannerEndpoint)
+		r.Patch("/version/{version}", ctr.ChooseBannerVersionEndpoint)
+		r.Delete("/{banner_id}", ctr.DeleteBannerEndpoint)
+		r.Delete("/", ctr.MarkBannerAsDeletedEndpoint)
 	})
-
-	//TODO: add routes for banner
 
 	return r
 }

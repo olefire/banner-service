@@ -1,7 +1,6 @@
 package auth
 
 import (
-	"banner-service/internal/controller/http"
 	"banner-service/internal/models"
 	utils "banner-service/pkg/utils/auth"
 	"context"
@@ -32,21 +31,29 @@ func NewAuthProvider(d Deps) *Provider {
 	}
 }
 
-var _ http.AuthManagement = (*Provider)(nil)
-
-func (s *Provider) SignUp(ctx context.Context, user *models.User) error {
+func (s *Provider) SignUp(ctx context.Context, user *models.User) (string, error) {
 	hashPassword, err := utils.HashPassword(user.Password)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	user.Password = hashPassword
 
 	if err := s.AuthRepo.SignUp(ctx, user); err != nil {
-		return err
+		return "", err
 	}
 
-	return nil
+	resources, err := s.AuthRepo.GetUserResources(ctx, user.Username)
+	if err != nil {
+		return "", err
+	}
+
+	token, err := CreateToken(time.Hour, user.Username, resources, s.PrivateKey)
+	if err != nil {
+		return "", err
+	}
+
+	return token, nil
 }
 
 func (s *Provider) SignIn(ctx context.Context, signInInput *models.User) (string, error) {
@@ -65,10 +72,20 @@ func (s *Provider) SignIn(ctx context.Context, signInInput *models.User) (string
 		return "", err
 	}
 
-	token, err := utils.CreateToken(time.Hour, resources, s.PrivateKey)
+	token, err := CreateToken(time.Hour, signInInput.Username, resources, s.PrivateKey)
 	if err != nil {
 		return "", err
 	}
 
 	return token, nil
+}
+
+type roleKey struct{}
+
+func SetRole(ctx context.Context, role models.UserRole) context.Context {
+	return context.WithValue(ctx, roleKey{}, role)
+}
+
+func GetRole(ctx context.Context) models.UserRole {
+	return ctx.Value(roleKey{}).(models.UserRole)
 }

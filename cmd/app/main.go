@@ -6,6 +6,7 @@ import (
 	controllerhttp "banner-service/internal/controller/http"
 	"banner-service/internal/repository"
 	BannerService "banner-service/internal/service/banner"
+	"banner-service/internal/worker"
 	"banner-service/pkg/middleware"
 	"context"
 	"fmt"
@@ -37,6 +38,8 @@ func main() {
 	})
 
 	bannerService := BannerService.NewService(BannerService.Deps{BannerRepo: bannerRepo})
+	bannerTicker := worker.NewBannerCollector(bannerRepo)
+	go bannerTicker.Start(ctx)
 
 	ctr := controllerhttp.NewController(
 		controllerhttp.AuthProvider{AuthManagement: authService},

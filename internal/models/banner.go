@@ -24,8 +24,8 @@ type PatchBanner struct {
 }
 
 type FilterBanner struct {
-	FeatureId *uint64 `db:"feature_id" json:"featureId"`
-	TagId     *uint64 `db:"tag_id" json:"tag_id"`
+	FeatureId uint64 `db:"feature_id" json:"featureId"`
+	TagId     uint64 `db:"tag_id" json:"tag_id"`
 	Limit     uint64
 	Offset    uint64
 }
