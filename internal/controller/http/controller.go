@@ -301,18 +301,27 @@ func (ctr *Controller) ChooseBannerVersionEndpoint(w http.ResponseWriter, r *htt
 }
 
 func (ctr *Controller) MarkBannerAsDeletedEndpoint(w http.ResponseWriter, r *http.Request) {
-	tagId, err := strconv.ParseUint(r.URL.Query().Get("tag_id"), 10, 64)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-	featureId, err := strconv.ParseUint(r.URL.Query().Get("feature_id"), 10, 64)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
+	var featureId, tagId *uint64
+
+	if tagIdStr := r.URL.Query().Get("tag_id"); tagIdStr != "" {
+		tag, err := strconv.ParseUint(tagIdStr, 10, 64)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		tagId = &tag
 	}
 
-	err = ctr.BannerService.MarkBannerAsDeleted(r.Context(), tagId, featureId)
+	if featureIdStr := r.URL.Query().Get("feature_id"); featureIdStr != "" {
+		feature, err := strconv.ParseUint(featureIdStr, 10, 64)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		featureId = &feature
+	}
+
+	err := ctr.BannerService.MarkBannerAsDeleted(r.Context(), featureId, tagId)
 	if errors.Is(err, repository.ErrNotFound) {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return

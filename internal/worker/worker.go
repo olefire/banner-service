@@ -29,7 +29,7 @@ func (w *BannerCollector) Start(ctx context.Context) {
 		case <-ticker.C:
 			err := w.repository.DeleteMarkedBanners(ctx)
 			if err != nil {
-				log.Print(err)
+				log.Printf("worker: %v", err)
 			}
 		case <-ctx.Done():
 			return

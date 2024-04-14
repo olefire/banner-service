@@ -258,18 +258,18 @@ func (b *BannerRepository) DeleteBanner(ctx context.Context, bannerId uint64) er
 	return err
 }
 
-func (b *BannerRepository) MarkBannersAsDeleted(ctx context.Context, tagId uint64, featureId uint64) error {
+func (b *BannerRepository) MarkBannersAsDeleted(ctx context.Context, featureId, tagId *uint64) error {
 	const (
 		markBannersAsDeletedQuery = `
 		update banner
-		set must_be_deleted = false
+		set must_be_deleted = true
 		where banner_id in
 			  (select banner_id
 			   from banner_feature_tag
-			   where tag_id = $1 or feature_id = $2)`
+			   where ($1::int is null or feature_id = $1) or ($2::int is null or tag_id = $2))`
 	)
 
-	_, err := b.pool.Exec(ctx, markBannersAsDeletedQuery, tagId, featureId)
+	_, err := b.pool.Exec(ctx, markBannersAsDeletedQuery, featureId, tagId)
 
 	return err
 }

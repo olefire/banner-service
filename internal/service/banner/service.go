@@ -14,7 +14,7 @@ type Repository interface {
 	CreateBanner(ctx context.Context, banner *models.Banner) (uint64, error)
 	PartialUpdateBanner(ctx context.Context, bannerId uint64, bannerPartial *models.PatchBanner) error
 	DeleteBanner(ctx context.Context, id uint64) error
-	MarkBannersAsDeleted(ctx context.Context, tagId uint64, featureId uint64) error
+	MarkBannersAsDeleted(ctx context.Context, featureId, tagId *uint64) error
 }
 
 type Deps struct {
@@ -88,8 +88,8 @@ func (s *Service) DeleteBanner(ctx context.Context, bannerId uint64) error {
 	return nil
 }
 
-func (s *Service) MarkBannerAsDeleted(ctx context.Context, tagId uint64, featureId uint64) error {
-	if err := s.BannerRepo.MarkBannersAsDeleted(ctx, tagId, featureId); err != nil {
+func (s *Service) MarkBannerAsDeleted(ctx context.Context, featureId, tagId *uint64) error {
+	if err := s.BannerRepo.MarkBannersAsDeleted(ctx, featureId, tagId); err != nil {
 		return err
 	}
 	return nil
