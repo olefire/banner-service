@@ -168,26 +168,37 @@ func (ctr *Controller) GetFilteredBannersEndpoint(w http.ResponseWriter, r *http
 	w.WriteHeader(http.StatusOK)
 }
 
+type CreateDTO struct {
+	TagIds    []uint64        `json:"tag_ids"`
+	FeatureId uint64          `json:"feature_id"`
+	Content   json.RawMessage `json:"content"`
+	IsActive  bool            `json:"is_active"`
+}
+
 func (ctr *Controller) CreateBannerEndpoint(w http.ResponseWriter, r *http.Request) {
-	var banner *models.Banner
+	var banner *CreateDTO
 	err := json.NewDecoder(r.Body).Decode(&banner)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	bannerId, err := ctr.BannerService.CreateBanner(r.Context(), banner)
+	bannerId, err := ctr.BannerService.CreateBanner(r.Context(), &models.Banner{
+		TagIds:    banner.TagIds,
+		FeatureId: banner.FeatureId,
+		Content:   banner.Content,
+		IsActive:  banner.IsActive,
+	})
 	if err != nil {
 		http.Error(w, fmt.Sprintf("CreateBanner error: %v ", err), http.StatusInternalServerError)
 		return
 	}
 
+	w.WriteHeader(http.StatusCreated)
 	_, err = w.Write([]byte(strconv.FormatUint(bannerId, 10)))
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-
-	w.WriteHeader(http.StatusCreated)
 }
 
 func (ctr *Controller) PartialUpdateBannerEndpoint(w http.ResponseWriter, r *http.Request) {
