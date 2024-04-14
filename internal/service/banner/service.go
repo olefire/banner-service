@@ -3,11 +3,14 @@ package banner
 import (
 	"banner-service/internal/controller/http"
 	"banner-service/internal/models"
+	"banner-service/internal/repository"
 	"context"
+	"github.com/jellydator/ttlcache/v3"
+	"log"
 )
 
 type Repository interface {
-	GetBanner(ctx context.Context, tagId, featureId uint64, isAdmin, useLastRevision bool) (string, error)
+	GetBanner(ctx context.Context, tagId, featureId uint64, isAdmin bool) (models.BannerContent, error)
 	GetListOfVersions(ctx context.Context, bannerId uint64) ([]models.Banner, error)
 	ChooseBannerVersion(ctx context.Context, bannerId uint64, version uint64) error
 	GetFilteredBanners(ctx context.Context, filter *models.FilterBanner) ([]models.Banner, error)
@@ -19,6 +22,7 @@ type Repository interface {
 
 type Deps struct {
 	BannerRepo Repository
+	Cache      *ttlcache.Cache[models.FeatureTag, models.BannerContent]
 }
 
 type Service struct {
@@ -34,13 +38,25 @@ func NewService(d Deps) *Service {
 var _ http.BannerManagement = (*Service)(nil)
 
 func (s *Service) GetBanner(ctx context.Context, tagId uint64, featureId uint64, role models.UserRole, useLastRevision bool) (string, error) {
+	if !useLastRevision {
+		if banner := s.Cache.Get(models.FeatureTag{FeatureId: featureId, TagId: tagId}); banner != nil {
+			if banner.Value().IsActive || role == models.Admin {
+				log.Println("get banner from cache", banner.Value())
+				return banner.Value().Content, nil
+			} else {
+				return "", repository.ErrBannerInactive
+			}
+		}
+	}
 
-	content, err := s.BannerRepo.GetBanner(ctx, tagId, featureId, role == models.Admin, useLastRevision)
+	content, err := s.BannerRepo.GetBanner(ctx, tagId, featureId, role == models.Admin)
 	if err != nil {
 		return "", err
 	}
 
-	return content, nil
+	s.Cache.Set(models.FeatureTag{FeatureId: featureId, TagId: tagId}, content, ttlcache.DefaultTTL)
+
+	return content.Content, nil
 }
 
 func (s *Service) GetListOfVersions(ctx context.Context, bannerId uint64) ([]models.Banner, error) {

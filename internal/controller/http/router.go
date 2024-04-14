@@ -15,7 +15,7 @@ func (ctr *Controller) NewRouter() http.Handler {
 	r.With(middleware.MetricsMiddleware).Route("/", func(r chi.Router) {
 		r.Post("/sign-up", ctr.SignUpEndpoint)
 		r.Post("/sign-in", ctr.SignInEndpoint)
-		authMiddleware := middleware.NewAuthMiddleware(ctr.publicKey)
+		authMiddleware := middleware.NewAuthMiddleware(ctr.TokenProvider)
 		r.With(authMiddleware.Middleware).Route("/", func(r chi.Router) {
 			r.Get("/user_banner", ctr.GetBannerEndpoint)
 			r.Route("/banner", func(r chi.Router) {

@@ -4,6 +4,7 @@ import (
 	"banner-service/internal/auth"
 	"banner-service/internal/models"
 	"fmt"
+	"github.com/jellydator/ttlcache/v3"
 	"github.com/samber/lo"
 	"log"
 	"net/http"
@@ -11,11 +12,11 @@ import (
 )
 
 type AuthMiddleware struct {
-	publicKey string
+	auth.TokenProvider
 }
 
-func NewAuthMiddleware(publicKey string) *AuthMiddleware {
-	return &AuthMiddleware{publicKey: publicKey}
+func NewAuthMiddleware(tp auth.TokenProvider) *AuthMiddleware {
+	return &AuthMiddleware{TokenProvider: tp}
 }
 
 func (am *AuthMiddleware) Middleware(next http.Handler) http.Handler {
@@ -28,13 +29,21 @@ func (am *AuthMiddleware) Middleware(next http.Handler) http.Handler {
 			return
 		}
 
-		resources, err := auth.ValidateToken(authFields[1], am.publicKey)
-		if err != nil {
-			w.WriteHeader(http.StatusUnauthorized)
-			return
+		token := authFields[1]
+
+		cachedResources := am.TokenProvider.Cache.Get(token)
+
+		if cachedResources == nil {
+			validateResources, err := am.ValidateToken(token, am.PublicKey)
+			if err != nil {
+				w.WriteHeader(http.StatusUnauthorized)
+				return
+			}
+			log.Println("set cache[token]model.UserResources")
+			cachedResources = am.TokenProvider.Cache.Set(token, validateResources, ttlcache.DefaultTTL)
 		}
 
-		log.Println(r.RequestURI)
+		resources := cachedResources.Value()
 
 		ctx := auth.SetRole(r.Context(), resources.Role)
 		if resources.Role == models.Admin {

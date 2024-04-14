@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"golang.org/x/crypto/bcrypt"
-	"time"
 )
 
 type Repository interface {
@@ -17,9 +16,8 @@ type Repository interface {
 }
 
 type Deps struct {
-	AuthRepo   Repository
-	PrivateKey string
-	PublicKey  string
+	AuthRepo Repository
+	TokenProvider
 }
 
 type Provider struct {
@@ -32,7 +30,7 @@ func NewAuthProvider(d Deps) *Provider {
 	}
 }
 
-func (s *Provider) SignUp(ctx context.Context, user *models.User) (string, error) {
+func (p *Provider) SignUp(ctx context.Context, user *models.User) (string, error) {
 	hashPassword, err := HashPassword(user.Password)
 	if err != nil {
 		return "", err
@@ -40,17 +38,17 @@ func (s *Provider) SignUp(ctx context.Context, user *models.User) (string, error
 
 	user.Password = hashPassword
 
-	err = s.AuthRepo.SignUp(ctx, user)
+	err = p.AuthRepo.SignUp(ctx, user)
 	if err != nil {
 		return "", fmt.Errorf("failed to sign-in: %w", err)
 	}
 
-	resources, err := s.AuthRepo.GetUserResources(ctx, user.Username)
+	resources, err := p.AuthRepo.GetUserResources(ctx, user.Username)
 	if err != nil {
 		return "", err
 	}
 
-	token, err := CreateToken(time.Hour, user.Username, resources, s.PrivateKey)
+	token, err := p.TokenProvider.CreateToken(p.TokenTTL, user.Username, resources, p.PrivateKey)
 	if err != nil {
 		return "", err
 	}
@@ -58,8 +56,8 @@ func (s *Provider) SignUp(ctx context.Context, user *models.User) (string, error
 	return token, nil
 }
 
-func (s *Provider) SignIn(ctx context.Context, signInInput *models.User) (string, error) {
-	hashPassword, err := s.AuthRepo.GetHashPassword(ctx, signInInput.Username)
+func (p *Provider) SignIn(ctx context.Context, signInInput *models.User) (string, error) {
+	hashPassword, err := p.AuthRepo.GetHashPassword(ctx, signInInput.Username)
 	if err != nil {
 		return "", err
 	}
@@ -69,14 +67,14 @@ func (s *Provider) SignIn(ctx context.Context, signInInput *models.User) (string
 		return "", fmt.Errorf("invalid login or password: user=%v", signInInput)
 	}
 
-	resources, err := s.AuthRepo.GetUserResources(ctx, signInInput.Username)
+	resources, err := p.AuthRepo.GetUserResources(ctx, signInInput.Username)
 	if errors.Is(err, repository.ErrNotFound) {
-		return "", fmt.Errorf("user with name `%s` does not exist", signInInput.Username)
+		return "", fmt.Errorf("user with name `%p` does not exist", signInInput.Username)
 	} else if err != nil {
 		return "", err
 	}
 
-	token, err := CreateToken(time.Hour, signInInput.Username, resources, s.PrivateKey)
+	token, err := p.TokenProvider.CreateToken(p.TokenTTL, signInInput.Username, resources, p.PrivateKey)
 	if err != nil {
 		return "", err
 	}

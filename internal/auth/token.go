@@ -6,10 +6,27 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/golang-jwt/jwt"
+	"github.com/jellydator/ttlcache/v3"
 	"time"
 )
 
-func CreateToken(ttl time.Duration, username string, payload models.UserResources, privateKey string) (string, error) {
+type TokenProvider struct {
+	Cache      *ttlcache.Cache[string, models.UserResources]
+	PrivateKey string
+	PublicKey  string
+	TokenTTL   time.Duration
+}
+
+func NewTokenProvider(cache *ttlcache.Cache[string, models.UserResources], privateKey, publicKey string, tokenTTL time.Duration) TokenProvider {
+	return TokenProvider{
+		Cache:      cache,
+		PrivateKey: privateKey,
+		PublicKey:  publicKey,
+		TokenTTL:   tokenTTL,
+	}
+}
+
+func (tp *TokenProvider) CreateToken(ttl time.Duration, username string, payload models.UserResources, privateKey string) (string, error) {
 	decodedPrivateKey, err := base64.StdEncoding.DecodeString(privateKey)
 	if err != nil {
 		return "", fmt.Errorf("could not decode key: %w", err)
@@ -36,7 +53,7 @@ func CreateToken(ttl time.Duration, username string, payload models.UserResource
 	return token, nil
 }
 
-func ValidateToken(token string, publicKey string) (models.UserResources, error) {
+func (tp *TokenProvider) ValidateToken(token string, publicKey string) (models.UserResources, error) {
 	decodedPublicKey, err := base64.StdEncoding.DecodeString(publicKey)
 	if err != nil {
 		return models.UserResources{}, fmt.Errorf("could not decode: %w", err)

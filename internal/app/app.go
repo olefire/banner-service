@@ -16,7 +16,6 @@ import (
 	"github.com/rs/cors"
 	"log"
 	"net/http"
-	"time"
 )
 
 func Start() {
@@ -32,24 +31,27 @@ func Start() {
 	}
 
 	authRepo := repository.NewAuthRepository(pool)
-	cache := ttlcache.New[models.FeatureTag, models.BannerContent](ttlcache.
-		WithTTL[models.FeatureTag, models.BannerContent](5 * time.Minute))
-	bannerRepo := repository.NewBannerRepository(pool, cache)
+	tokenCache := ttlcache.New[string, models.UserResources](ttlcache.
+		WithTTL[string, models.UserResources](cfg.TokenTTL))
+	tokenProvider := AuthProvider.NewTokenProvider(tokenCache, cfg.PrivateKey, cfg.PublicKey, cfg.TokenTTL)
+
+	bannerCache := ttlcache.New[models.FeatureTag, models.BannerContent](ttlcache.
+		WithTTL[models.FeatureTag, models.BannerContent](cfg.BannerTTL))
+	bannerRepo := repository.NewBannerRepository(pool)
 
 	authService := AuthProvider.NewAuthProvider(AuthProvider.Deps{
-		AuthRepo:   authRepo,
-		PrivateKey: cfg.PrivateKey,
-		PublicKey:  cfg.PublicKey,
+		AuthRepo:      authRepo,
+		TokenProvider: tokenProvider,
 	})
 
-	bannerService := BannerService.NewService(BannerService.Deps{BannerRepo: bannerRepo})
+	bannerService := BannerService.NewService(BannerService.Deps{BannerRepo: bannerRepo, Cache: bannerCache})
 	bannerTicker := worker.NewBannerCollector(bannerRepo)
 	go bannerTicker.Start(ctx)
 
 	ctr := controllerhttp.NewController(
-		controllerhttp.AuthProvider{AuthManagement: authService},
+		controllerhttp.AuthProvider{AuthManagement: authService, TokenProvider: tokenProvider},
 		controllerhttp.BannerService{BannerManagement: bannerService},
-		cfg.PublicKey)
+	)
 
 	router := ctr.NewRouter()
 

@@ -7,19 +7,15 @@ import (
 	"github.com/georgysavva/scany/v2/pgxscan"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/jellydator/ttlcache/v3"
-	"log"
 )
 
 type BannerRepository struct {
-	pool  *pgxpool.Pool
-	cache *ttlcache.Cache[models.FeatureTag, models.BannerContent]
+	pool *pgxpool.Pool
 }
 
-func NewBannerRepository(p *pgxpool.Pool, c *ttlcache.Cache[models.FeatureTag, models.BannerContent]) *BannerRepository {
+func NewBannerRepository(p *pgxpool.Pool) *BannerRepository {
 	return &BannerRepository{
-		pool:  p,
-		cache: c,
+		pool: p,
 	}
 }
 
@@ -39,18 +35,7 @@ func RunInTx(ctx context.Context, pool *pgxpool.Pool, f func(tx pgx.Tx) error) e
 	return tx.Commit(ctx)
 }
 
-func (b *BannerRepository) GetBanner(ctx context.Context, tagId uint64, featureId uint64, isAdmin bool, useLastRevision bool) (string, error) {
-	if !useLastRevision {
-		if banner := b.cache.Get(models.FeatureTag{FeatureId: featureId, TagId: tagId}); banner != nil {
-			if banner.Value().IsActive || isAdmin {
-				log.Println("get banner from cache", banner.Value())
-				return banner.Value().Content, nil
-			} else {
-				return "", ErrBannerInactive
-			}
-		}
-	}
-
+func (b *BannerRepository) GetBanner(ctx context.Context, tagId uint64, featureId uint64, isAdmin bool) (models.BannerContent, error) {
 	const (
 		selectBannerQuery = `select bv.content, b.is_active
            from banner_feature_tag bft
@@ -61,16 +46,14 @@ func (b *BannerRepository) GetBanner(ctx context.Context, tagId uint64, featureI
 
 	var bannerContent models.BannerContent
 	if err := pgxscan.Get(ctx, b.pool, &bannerContent, selectBannerQuery, featureId, tagId); errors.Is(err, pgx.ErrNoRows) {
-		return "", ErrNotFound
+		return models.BannerContent{}, ErrNotFound
 	} else if err != nil {
-		return "", err
+		return models.BannerContent{}, err
 	} else if !(bannerContent.IsActive || isAdmin) {
-		return "", ErrBannerInactive
+		return models.BannerContent{}, ErrBannerInactive
 	}
 
-	_ = b.cache.Set(models.FeatureTag{FeatureId: featureId, TagId: tagId}, bannerContent, ttlcache.DefaultTTL)
-
-	return bannerContent.Content, nil
+	return bannerContent, nil
 }
 
 func (b *BannerRepository) GetListOfVersions(ctx context.Context, bannerId uint64) ([]models.Banner, error) {

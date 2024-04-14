@@ -14,6 +14,7 @@ import (
 
 type AuthProvider struct {
 	AuthManagement
+	auth.TokenProvider
 }
 
 type BannerService struct {
@@ -23,14 +24,12 @@ type BannerService struct {
 type Controller struct {
 	AuthProvider
 	BannerService
-	publicKey string
 }
 
-func NewController(as AuthProvider, bs BannerService, pk string) *Controller {
+func NewController(as AuthProvider, bs BannerService) *Controller {
 	return &Controller{
 		AuthProvider:  as,
 		BannerService: bs,
-		publicKey:     pk,
 	}
 }
 
