@@ -1,7 +1,6 @@
 package e2e
 
 import (
-	"banner-service/internal/app"
 	controller "banner-service/internal/controller/http"
 	"banner-service/internal/models"
 	"context"
@@ -32,8 +31,6 @@ var (
 )
 
 func Setup() {
-	go app.Start()
-
 	const truncateQuery = `
 		truncate banner, banner_feature_tag, banner_version, role_endpoints, users
 	`

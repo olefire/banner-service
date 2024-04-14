@@ -32,11 +32,16 @@ func Start() {
 
 	authRepo := repository.NewAuthRepository(pool)
 	tokenCache := ttlcache.New[string, models.UserResources](ttlcache.
-		WithTTL[string, models.UserResources](cfg.TokenTTL))
+		WithTTL[string, models.UserResources](cfg.TokenTTL),
+		ttlcache.WithCapacity[string, models.UserResources](cfg.TokenCacheCapacity),
+	)
+	bannerCache := ttlcache.New[models.FeatureTag, models.BannerContent](ttlcache.
+		WithTTL[models.FeatureTag, models.BannerContent](cfg.BannerTTL),
+		ttlcache.WithCapacity[models.FeatureTag, models.BannerContent](cfg.TokenCacheCapacity),
+	)
+
 	tokenProvider := AuthProvider.NewTokenProvider(tokenCache, cfg.PrivateKey, cfg.PublicKey, cfg.TokenTTL)
 
-	bannerCache := ttlcache.New[models.FeatureTag, models.BannerContent](ttlcache.
-		WithTTL[models.FeatureTag, models.BannerContent](cfg.BannerTTL))
 	bannerRepo := repository.NewBannerRepository(pool)
 
 	authService := AuthProvider.NewAuthProvider(AuthProvider.Deps{

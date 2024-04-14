@@ -55,7 +55,7 @@ func (s *Service) GetBanner(ctx context.Context, tagId uint64, featureId uint64,
 	}
 
 	s.Cache.Set(models.FeatureTag{FeatureId: featureId, TagId: tagId}, content, ttlcache.DefaultTTL)
-
+	log.Println("get banner from db", content)
 	return content.Content, nil
 }
 
