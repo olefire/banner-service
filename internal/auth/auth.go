@@ -69,7 +69,7 @@ func (p *Provider) SignIn(ctx context.Context, signInInput *models.User) (string
 
 	resources, err := p.AuthRepo.GetUserResources(ctx, signInInput.Username)
 	if errors.Is(err, repository.ErrNotFound) {
-		return "", fmt.Errorf("user with name `%p` does not exist", signInInput.Username)
+		return "", fmt.Errorf("user with name `%s` does not exist", signInInput.Username)
 	} else if err != nil {
 		return "", err
 	}

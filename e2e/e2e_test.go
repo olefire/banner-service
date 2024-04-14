@@ -246,6 +246,7 @@ func Test(t *testing.T) {
 	eg := errgroup.Group{}
 
 	for i := uint64(0); i < 128; i++ {
+		i := i
 		eg.Go(func() error {
 			_, err := client.CreateBanner(controller.CreateDTO{
 				FeatureId: i,
@@ -304,6 +305,7 @@ func TestStressWithCache(t *testing.T) {
 	const bannerCount = 200
 
 	for i := uint64(0); i < bannerCount; i++ {
+		i := i
 		eg.Go(func() error {
 			_, err := client.CreateBanner(controller.CreateDTO{
 				FeatureId: i,
