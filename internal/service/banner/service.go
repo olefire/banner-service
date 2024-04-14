@@ -7,7 +7,7 @@ import (
 )
 
 type Repository interface {
-	GetBanner(ctx context.Context, tagId uint64, featureId uint64, isAdmin bool) (string, error)
+	GetBanner(ctx context.Context, tagId, featureId uint64, isAdmin, useLastRevision bool) (string, error)
 	GetListOfVersions(ctx context.Context, bannerId uint64) ([]models.Banner, error)
 	ChooseBannerVersion(ctx context.Context, bannerId uint64, version uint64) error
 	GetFilteredBanners(ctx context.Context, filter *models.FilterBanner) ([]models.Banner, error)
@@ -33,9 +33,9 @@ func NewService(d Deps) *Service {
 
 var _ http.BannerManagement = (*Service)(nil)
 
-func (s *Service) GetBanner(ctx context.Context, tagId uint64, featureId uint64, role models.UserRole) (string, error) {
+func (s *Service) GetBanner(ctx context.Context, tagId uint64, featureId uint64, role models.UserRole, useLastRevision bool) (string, error) {
 
-	content, err := s.BannerRepo.GetBanner(ctx, tagId, featureId, role == models.Admin)
+	content, err := s.BannerRepo.GetBanner(ctx, tagId, featureId, role == models.Admin, useLastRevision)
 	if err != nil {
 		return "", err
 	}

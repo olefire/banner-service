@@ -11,7 +11,7 @@ type AuthManagement interface {
 }
 
 type BannerManagement interface {
-	GetBanner(ctx context.Context, tagId uint64, featureId uint64, role models.UserRole) (string, error)
+	GetBanner(ctx context.Context, tagId uint64, featureId uint64, role models.UserRole, useLastRevision bool) (string, error)
 	GetListOfVersions(ctx context.Context, bannersId uint64) ([]models.Banner, error)
 	ChooseBannerVersion(ctx context.Context, bannerId uint64, version uint64) error
 	GetFilteredBanners(ctx context.Context, filter *models.FilterBanner) ([]models.Banner, error)

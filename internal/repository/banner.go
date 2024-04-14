@@ -7,15 +7,19 @@ import (
 	"github.com/georgysavva/scany/v2/pgxscan"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/jellydator/ttlcache/v3"
+	"log"
 )
 
 type BannerRepository struct {
-	pool *pgxpool.Pool
+	pool  *pgxpool.Pool
+	cache *ttlcache.Cache[models.FeatureTag, models.BannerContent]
 }
 
-func NewBannerRepository(p *pgxpool.Pool) *BannerRepository {
+func NewBannerRepository(p *pgxpool.Pool, c *ttlcache.Cache[models.FeatureTag, models.BannerContent]) *BannerRepository {
 	return &BannerRepository{
-		pool: p,
+		pool:  p,
+		cache: c,
 	}
 }
 
@@ -35,23 +39,38 @@ func RunInTx(ctx context.Context, pool *pgxpool.Pool, f func(tx pgx.Tx) error) e
 	return tx.Commit(ctx)
 }
 
-func (b *BannerRepository) GetBanner(ctx context.Context, tagId uint64, featureId uint64, isAdmin bool) (string, error) {
+func (b *BannerRepository) GetBanner(ctx context.Context, tagId uint64, featureId uint64, isAdmin bool, useLastRevision bool) (string, error) {
+	if !useLastRevision {
+		if banner := b.cache.Get(models.FeatureTag{FeatureId: featureId, TagId: tagId}); banner != nil {
+			if banner.Value().IsActive || isAdmin {
+				log.Println("get banner from cache", banner.Value())
+				return banner.Value().Content, nil
+			} else {
+				return "", ErrBannerInactive
+			}
+		}
+	}
+
 	const (
-		selectBannerQuery = `select bv.content
+		selectBannerQuery = `select bv.content, b.is_active
            from banner_feature_tag bft
            join banner b using (banner_id)
            join banner_version bv on b.banner_id = bv.banner_id and b.active_version = bv.version
-           where bft.feature_id = $1 and bft.tag_id = $2 and not must_be_deleted and (b.is_active or $3)`
+           where bft.feature_id = $1 and bft.tag_id = $2 and not must_be_deleted`
 	)
 
-	var content string
-	if err := pgxscan.Get(ctx, b.pool, &content, selectBannerQuery, featureId, tagId, isAdmin); errors.Is(err, pgx.ErrNoRows) {
+	var bannerContent models.BannerContent
+	if err := pgxscan.Get(ctx, b.pool, &bannerContent, selectBannerQuery, featureId, tagId, isAdmin); errors.Is(err, pgx.ErrNoRows) {
 		return "", ErrNotFound
 	} else if err != nil {
 		return "", err
+	} else if !(bannerContent.IsActive || isAdmin) {
+		return "", ErrBannerInactive
 	}
 
-	return content, nil
+	_ = b.cache.Set(models.FeatureTag{FeatureId: featureId, TagId: tagId}, bannerContent, ttlcache.DefaultTTL)
+
+	return bannerContent.Content, nil
 }
 
 func (b *BannerRepository) GetListOfVersions(ctx context.Context, bannerId uint64) ([]models.Banner, error) {
@@ -97,9 +116,7 @@ func (b *BannerRepository) GetFilteredBanners(ctx context.Context, filter *model
             from banner b
             join banner_version bv on b.banner_id = bv.banner_id and b.active_version = bv.version
             join banner_feature_tag bft on b.banner_id = bft.banner_id
-            where ($1::int is null or bft.feature_id = $1)
-            and ($2::int is null or bft.tag_id = $2)
-            and b.must_be_deleted = false
+            where bft.feature_id = $1 and bft.tag_id = $2 and b.must_be_deleted = false
             group by b.banner_id, bft.feature_id, bv.content, b.is_active, bv.version, b.created_at, bv.updated_at
             order by b.banner_id desc 
             limit $3 offset $4`

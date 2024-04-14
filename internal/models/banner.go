@@ -29,3 +29,13 @@ type FilterBanner struct {
 	Limit     uint64
 	Offset    uint64
 }
+
+type FeatureTag struct {
+	FeatureId uint64 `db:"feature_id" json:"feature_id"`
+	TagId     uint64 `db:"tag_id" json:"tag_id"`
+}
+
+type BannerContent struct {
+	Content  string `db:"content"`
+	IsActive bool   `db:"is_active"`
+}

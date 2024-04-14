@@ -90,9 +90,11 @@ func (ctr *Controller) GetBannerEndpoint(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
+	useLastRevision := r.URL.Query().Get("use_last_revision") == "true"
+
 	role := auth.GetRole(r.Context())
 
-	content, err := ctr.BannerService.GetBanner(r.Context(), tagId, featureId, role)
+	content, err := ctr.BannerService.GetBanner(r.Context(), tagId, featureId, role, useLastRevision)
 	if errors.Is(err, repository.ErrBannerInactive) {
 		http.Error(w, err.Error(), http.StatusForbidden)
 		return
