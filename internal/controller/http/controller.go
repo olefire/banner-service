@@ -249,7 +249,7 @@ func (ctr *Controller) DeleteBannerEndpoint(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	w.WriteHeader(http.StatusOK)
+	w.WriteHeader(http.StatusNoContent)
 }
 
 func (ctr *Controller) GetListOfVersionsEndpoint(w http.ResponseWriter, r *http.Request) {
@@ -336,5 +336,5 @@ func (ctr *Controller) MarkBannerAsDeletedEndpoint(w http.ResponseWriter, r *htt
 		return
 	}
 
-	w.WriteHeader(http.StatusOK)
+	w.WriteHeader(http.StatusNoContent)
 }
