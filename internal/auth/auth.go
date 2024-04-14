@@ -2,7 +2,6 @@ package auth
 
 import (
 	"banner-service/internal/models"
-	utils "banner-service/pkg/utils/auth"
 	"context"
 	"fmt"
 	"golang.org/x/crypto/bcrypt"
@@ -32,7 +31,7 @@ func NewAuthProvider(d Deps) *Provider {
 }
 
 func (s *Provider) SignUp(ctx context.Context, user *models.User) (string, error) {
-	hashPassword, err := utils.HashPassword(user.Password)
+	hashPassword, err := HashPassword(user.Password)
 	if err != nil {
 		return "", err
 	}
