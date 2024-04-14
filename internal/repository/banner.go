@@ -251,7 +251,7 @@ func (b *BannerRepository) MarkBannersAsDeleted(ctx context.Context, featureId, 
 		where banner_id in
 			  (select banner_id
 			   from banner_feature_tag
-			   where ($1::int is null or feature_id = $1) or ($2::int is null or tag_id = $2))`
+			   where ($1::int = -1 or feature_id = $1) or ($2::int = -1 or tag_id = $2))`
 	)
 
 	_, err := b.pool.Exec(ctx, markBannersAsDeletedQuery, featureId, tagId)
