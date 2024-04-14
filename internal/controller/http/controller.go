@@ -117,40 +117,46 @@ func (ctr *Controller) GetBannerEndpoint(w http.ResponseWriter, r *http.Request)
 func (ctr *Controller) GetFilteredBannersEndpoint(w http.ResponseWriter, r *http.Request) {
 	var filter models.FilterBanner
 
-	featureIdStr := r.URL.Query().Get("feature_id")
-	featureId, err := strconv.ParseUint(featureIdStr, 10, 64)
-	if err != nil {
-		http.Error(w, "Invalid feature_id", http.StatusBadRequest)
-		return
+	if tagIdStr := r.URL.Query().Get("tag_id"); tagIdStr != "" {
+		tag, err := strconv.ParseUint(tagIdStr, 10, 64)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		filter.TagId = tag
 	}
-	filter.FeatureId = featureId
 
-	tagIdStr := r.URL.Query().Get("tag_id")
-	tagId, err := strconv.ParseUint(tagIdStr, 10, 64)
-	if err != nil {
-		http.Error(w, "Invalid tag_id", http.StatusBadRequest)
-		return
+	if featureIdStr := r.URL.Query().Get("feature_id"); featureIdStr != "" {
+		feature, err := strconv.ParseUint(featureIdStr, 10, 64)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		filter.FeatureId = feature
 	}
-	filter.TagId = tagId
 
-	limitStr := r.URL.Query().Get("limit")
-	limit, err := strconv.ParseUint(limitStr, 10, 64)
-	if err != nil {
-		http.Error(w, "Invalid limit", http.StatusBadRequest)
-		return
+	if limitStr := r.URL.Query().Get("limit"); limitStr != "" {
+		limit, err := strconv.ParseUint(limitStr, 10, 64)
+		if err != nil {
+			http.Error(w, "Invalid limit", http.StatusBadRequest)
+			return
+		}
+		filter.Limit = limit
 	}
-	filter.Limit = limit
-
-	offsetStr := r.URL.Query().Get("offset")
-	offset, err := strconv.ParseUint(offsetStr, 10, 64)
-	if err != nil {
-		http.Error(w, "Invalid offset", http.StatusBadRequest)
-		return
+	if offsetStr := r.URL.Query().Get("offset"); offsetStr != "" {
+		offset, err := strconv.ParseUint(offsetStr, 10, 64)
+		if err != nil {
+			http.Error(w, "Invalid offset", http.StatusBadRequest)
+			return
+		}
+		filter.Offset = offset
 	}
-	filter.Offset = offset
 
 	banners, err := ctr.BannerService.GetFilteredBanners(r.Context(), &filter)
-	if err != nil {
+	if errors.Is(err, repository.ErrNotFound) {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	} else if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -277,7 +283,7 @@ func (ctr *Controller) GetListOfVersionsEndpoint(w http.ResponseWriter, r *http.
 }
 
 func (ctr *Controller) ChooseBannerVersionEndpoint(w http.ResponseWriter, r *http.Request) {
-	bannerId, err := strconv.ParseUint(chi.URLParam(r, "version"), 10, 64)
+	bannerId, err := strconv.ParseUint(chi.URLParam(r, "banner_id"), 10, 64)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return

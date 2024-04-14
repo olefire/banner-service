@@ -60,7 +60,7 @@ func (b *BannerRepository) GetBanner(ctx context.Context, tagId uint64, featureI
 	)
 
 	var bannerContent models.BannerContent
-	if err := pgxscan.Get(ctx, b.pool, &bannerContent, selectBannerQuery, featureId, tagId, isAdmin); errors.Is(err, pgx.ErrNoRows) {
+	if err := pgxscan.Get(ctx, b.pool, &bannerContent, selectBannerQuery, featureId, tagId); errors.Is(err, pgx.ErrNoRows) {
 		return "", ErrNotFound
 	} else if err != nil {
 		return "", err
@@ -116,7 +116,7 @@ func (b *BannerRepository) GetFilteredBanners(ctx context.Context, filter *model
             from banner b
             join banner_version bv on b.banner_id = bv.banner_id and b.active_version = bv.version
             join banner_feature_tag bft on b.banner_id = bft.banner_id
-            where bft.feature_id = $1 and bft.tag_id = $2 and b.must_be_deleted = false
+            where bft.feature_id = $1 or bft.tag_id = $2 and b.must_be_deleted = false
             group by b.banner_id, bft.feature_id, bv.content, b.is_active, bv.version, b.created_at, bv.updated_at
             order by b.banner_id desc 
             limit $3 offset $4`
@@ -134,7 +134,7 @@ func (b *BannerRepository) GetFilteredBanners(ctx context.Context, filter *model
 
 func (b *BannerRepository) CreateBanner(ctx context.Context, banner *models.Banner) (uint64, error) {
 	const (
-		createBannerQuery = `insert into banner default values returning banner_id`
+		createBannerQuery = `insert into banner (is_active) values ($1) returning banner_id`
 
 		addFeatureAndTagsQuery = `
             insert into banner_feature_tag (banner_id, tag_id, feature_id)
@@ -146,7 +146,7 @@ func (b *BannerRepository) CreateBanner(ctx context.Context, banner *models.Bann
 
 	var bannerId uint64
 	err := RunInTx(ctx, b.pool, func(tx pgx.Tx) error {
-		if err := pgxscan.Get(ctx, tx, &bannerId, createBannerQuery); errors.Is(err, pgx.ErrNoRows) {
+		if err := pgxscan.Get(ctx, tx, &bannerId, createBannerQuery, banner.IsActive); errors.Is(err, pgx.ErrNoRows) {
 			return ErrNotFound
 		} else if err != nil {
 			return err
@@ -177,12 +177,12 @@ func (b *BannerRepository) PartialUpdateBanner(ctx context.Context, bannerId uin
 		    returning version`
 
 		updateActiveVersionQuery = `
-            update banner set active_version = $1
-            where banner_id = $2`
+            update banner set active_version = $2, is_active = $3
+            where banner_id = $1`
 
 		deleteQuery = `
 		    delete from banner_feature_tag
-            where feature_id = $1 or tag_id = any($2)`
+            where banner_id = $1`
 
 		addNewTagsQuery = `
 		    insert into banner_feature_tag (banner_id, tag_id, feature_id)
@@ -202,19 +202,21 @@ func (b *BannerRepository) PartialUpdateBanner(ctx context.Context, bannerId uin
 			return err
 		}
 
-		_, err := b.pool.Exec(ctx, updateActiveVersionQuery, version, bannerId)
+		_, err := b.pool.Exec(ctx, updateActiveVersionQuery, bannerId, version, bannerPartial.IsActive)
 		if err != nil {
 			return err
 		}
 
-		_, err = b.pool.Exec(ctx, deleteQuery, bannerPartial.FeatureId, bannerPartial.TagIds)
-		if err != nil {
-			return err
-		}
+		if bannerPartial.TagIds != nil && bannerPartial.FeatureId != nil {
+			_, err = b.pool.Exec(ctx, deleteQuery, bannerId)
+			if err != nil {
+				return err
+			}
 
-		_, err = b.pool.Exec(ctx, addNewTagsQuery, bannerId, bannerPartial.TagIds, bannerPartial.FeatureId)
-		if err != nil {
-			return err
+			_, err = b.pool.Exec(ctx, addNewTagsQuery, bannerId, bannerPartial.TagIds, bannerPartial.FeatureId)
+			if err != nil {
+				return err
+			}
 		}
 		return nil
 	})

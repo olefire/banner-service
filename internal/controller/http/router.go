@@ -23,7 +23,7 @@ func (ctr *Controller) NewRouter() http.Handler {
 				r.Get("/versions/{banner_id}", ctr.GetListOfVersionsEndpoint)
 				r.Post("/", ctr.CreateBannerEndpoint)
 				r.Patch("/{banner_id}", ctr.PartialUpdateBannerEndpoint)
-				r.Patch("/version/{version}", ctr.ChooseBannerVersionEndpoint)
+				r.Patch("/{banner_id}/version/{version}", ctr.ChooseBannerVersionEndpoint)
 				r.Delete("/{banner_id}", ctr.DeleteBannerEndpoint)
 				r.Delete("/", ctr.MarkBannerAsDeletedEndpoint)
 			})

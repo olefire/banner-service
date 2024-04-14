@@ -5,8 +5,8 @@ import (
 	"banner-service/internal/models"
 	"fmt"
 	"github.com/samber/lo"
+	"log"
 	"net/http"
-	"path"
 	"strings"
 )
 
@@ -34,6 +34,8 @@ func (am *AuthMiddleware) Middleware(next http.Handler) http.Handler {
 			return
 		}
 
+		log.Println(r.RequestURI)
+
 		ctx := auth.SetRole(r.Context(), resources.Role)
 		if resources.Role == models.Admin {
 			next.ServeHTTP(w, r.WithContext(ctx))
@@ -50,5 +52,5 @@ func (am *AuthMiddleware) Middleware(next http.Handler) http.Handler {
 }
 
 func buildResource(r *http.Request) string {
-	return fmt.Sprintf("%s %s", r.Method, path.Dir(r.URL.Path))
+	return fmt.Sprintf("%s %s", r.Method, r.URL.Path)
 }

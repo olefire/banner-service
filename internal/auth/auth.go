@@ -2,7 +2,9 @@ package auth
 
 import (
 	"banner-service/internal/models"
+	"banner-service/internal/repository"
 	"context"
+	"errors"
 	"fmt"
 	"golang.org/x/crypto/bcrypt"
 	"time"
@@ -38,8 +40,9 @@ func (s *Provider) SignUp(ctx context.Context, user *models.User) (string, error
 
 	user.Password = hashPassword
 
-	if err := s.AuthRepo.SignUp(ctx, user); err != nil {
-		return "", err
+	err = s.AuthRepo.SignUp(ctx, user)
+	if err != nil {
+		return "", fmt.Errorf("failed to sign-in: %w", err)
 	}
 
 	resources, err := s.AuthRepo.GetUserResources(ctx, user.Username)
@@ -67,7 +70,9 @@ func (s *Provider) SignIn(ctx context.Context, signInInput *models.User) (string
 	}
 
 	resources, err := s.AuthRepo.GetUserResources(ctx, signInInput.Username)
-	if err != nil {
+	if errors.Is(err, repository.ErrNotFound) {
+		return "", fmt.Errorf("user with name `%s` does not exist", signInInput.Username)
+	} else if err != nil {
 		return "", err
 	}
 
