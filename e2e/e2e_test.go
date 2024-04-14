@@ -98,7 +98,17 @@ func (c testClient) DeleteBanner(bannerId uint64, token string) (*resty.Response
 	return c.resty.R().
 		SetHeader("Authorization", fmt.Sprintf("Bearer %s", token)).
 		Delete(fmt.Sprintf("%s/banner/%d", addr, bannerId))
+}
 
+func (c testClient) GetFilteredBanners(filterBanner models.FilterBanner, token string) (*resty.Response, error) {
+	return c.resty.R().SetQueryParams(map[string]string{
+		"tag_id":     fmt.Sprint(filterBanner.TagId),
+		"feature_id": fmt.Sprint(filterBanner.FeatureId),
+		"limit":      fmt.Sprint(filterBanner.Limit),
+		"offset":     fmt.Sprint(filterBanner.Offset),
+	}).
+		SetHeader("Authorization", fmt.Sprintf("Bearer %s", token)).
+		Get(addr + "/banner")
 }
 
 func TestBasicScenario(t *testing.T) {
@@ -197,6 +207,24 @@ func TestBasicScenario(t *testing.T) {
 		assert.Equal(t, http.StatusOK, resp.StatusCode())
 		assert.Equal(t, newTestContent, content)
 	})
+
+	t.Run("get filtered banner", func(t *testing.T) {
+		resp, err := client.GetFilteredBanners(models.FilterBanner{
+			FeatureId: testFeatureID,
+			TagId:     testTagIDs[0],
+			Limit:     1,
+			Offset:    0,
+		}, adminToken)
+		assert.NoError(t, err)
+		assert.Equal(t, http.StatusOK, resp.StatusCode())
+	})
+
+	t.Run("delete banner", func(t *testing.T) {
+		resp, err := client.DeleteBanner(bannerId, adminToken)
+		assert.NoError(t, err)
+		assert.Equal(t, http.StatusNoContent, resp.StatusCode())
+	})
+
 }
 
 func Test(t *testing.T) {
@@ -252,7 +280,7 @@ func Test(t *testing.T) {
 	}
 }
 
-func TestStress(t *testing.T) {
+func TestStressWithCache(t *testing.T) {
 	Setup()
 
 	limit := 1000
