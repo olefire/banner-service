@@ -1,0 +1,4 @@
+go.sum linguist-generated
+**/go.sum linguist-generated
+*_string.go linguist-generated
+*_mock_test.go linguist-generated
