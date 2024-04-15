@@ -4,11 +4,28 @@ services:
     image: postgres:latest
     environment:
       POSTGRES_PASSWORD: postgres
+      POSTGRES_USER: postgres
       PGDATA: /data/postgres
     volumes:
       - postgres:/data/postgres
     ports:
       - "5432:5432"
     restart: always
+    networks:
+      - mynetwork
+
+  banner-service:
+    build: ./
+    ports:
+      - "8000:8000"
+    depends_on:
+      - postgres
+    restart: always
+    networks:
+      - mynetwork
+
 volumes:
   postgres:
+
+networks:
+  mynetwork:
