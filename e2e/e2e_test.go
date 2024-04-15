@@ -11,9 +11,14 @@ import (
 	"github.com/stretchr/testify/assert"
 	"golang.org/x/sync/errgroup"
 	"golang.org/x/time/rate"
+	"math/rand"
 	"net/http"
+	"os"
+	"os/signal"
 	"strconv"
+	"syscall"
 	"testing"
+	"time"
 )
 
 const (
@@ -278,10 +283,26 @@ func Test(t *testing.T) {
 	}
 }
 
+func normDist(n int) int {
+	const count = 10
+
+	r := 0
+	for i := 0; i < count; i++ {
+		r += rand.Intn(n)
+	}
+	return r / count
+}
+
 func TestStressWithCache(t *testing.T) {
 	Setup()
 
-	limit := 1000
+	ctx, cancel := context.WithTimeout(context.Background(), 4*time.Minute)
+	defer cancel()
+
+	exit := make(chan os.Signal, 1) // we need to reserve to buffer size 1, so the notifier are not blocked
+	signal.Notify(exit, os.Interrupt, syscall.SIGTERM)
+
+	limit := 300
 	rateLimiter := rate.NewLimiter(rate.Limit(limit), limit)
 
 	client := testClient{resty: resty.New().SetRetryCount(5)}
@@ -320,18 +341,26 @@ func TestStressWithCache(t *testing.T) {
 
 	eg = errgroup.Group{}
 
-	for i := uint64(0); ; i++ {
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-exit:
+			return
+		default:
+		}
+
 		if err := rateLimiter.Wait(context.Background()); err != nil {
 			fmt.Println("rate limiter:", err)
 		}
 
-		i := i
+		i := normDist(bannerCount)
 		rateLimiter.Reserve()
-		go func(i uint64) {
+		go func() {
 			defer rateLimiter.Allow()
 			client := testClient{resty: resty.New()}
-			n := i % bannerCount
+			n := uint64(i) % bannerCount
 			_, _ = client.GetBanner(n, n, token)
-		}(i)
+		}()
 	}
 }
